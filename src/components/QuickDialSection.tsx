@@ -1,4 +1,10 @@
 import { Heart, Shield, Flame, Zap, Phone } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+
+interface QuickDialSectionProps {
+  userCep?: string;
+  onNeedCep?: () => void;
+}
 
 const quickDialNumbers = [
   { 
@@ -7,7 +13,8 @@ const quickDialNumbers = [
     description: "Emergência Médica",
     icon: Heart, 
     color: "bg-accent",
-    textColor: "text-accent"
+    textColor: "text-accent",
+    isEmergency: true,
   },
   { 
     number: "190", 
@@ -15,7 +22,8 @@ const quickDialNumbers = [
     description: "Segurança Pública",
     icon: Shield, 
     color: "bg-primary",
-    textColor: "text-primary"
+    textColor: "text-primary",
+    isEmergency: true,
   },
   { 
     number: "193", 
@@ -23,26 +31,39 @@ const quickDialNumbers = [
     description: "Incêndio e Resgate",
     icon: Flame, 
     color: "bg-warning",
-    textColor: "text-warning"
+    textColor: "text-warning",
+    isEmergency: true,
   },
   { 
-    number: "0800", 
-    label: "Energia", 
-    description: "Falta de Luz",
+    number: "Energia", 
+    label: "Falta de Luz", 
+    description: "Varia por cidade",
     icon: Zap, 
     color: "bg-success",
-    textColor: "text-success"
+    textColor: "text-success",
+    isEmergency: false,
   },
 ];
 
-const QuickDialSection = () => {
-  const handleCall = (number: string) => {
-    if (number === "0800") {
-      // Would need CEP to determine correct number
-      alert("Insira seu CEP acima para obter o número correto da sua distribuidora.");
-      return;
+const QuickDialSection = ({ userCep, onNeedCep }: QuickDialSectionProps) => {
+  const { toast } = useToast();
+
+  const handleCall = (item: typeof quickDialNumbers[0]) => {
+    if (item.isEmergency) {
+      window.location.href = `tel:${item.number}`;
+    } else {
+      // Para energia, precisa do CEP
+      toast({
+        title: "📍 CEP necessário",
+        description: "Insira seu CEP no topo da página para ver o número da sua distribuidora de energia.",
+      });
+      
+      if (onNeedCep) {
+        onNeedCep();
+      }
+      
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
-    window.location.href = `tel:${number}`;
   };
 
   return (
@@ -65,13 +86,13 @@ const QuickDialSection = () => {
           {quickDialNumbers.map((item) => (
             <button
               key={item.number}
-              onClick={() => handleCall(item.number)}
+              onClick={() => handleCall(item)}
               className="group bg-card rounded-2xl p-6 shadow-soft border border-border hover:shadow-medium hover:border-primary/30 transition-smooth flex flex-col items-center text-center"
             >
               <div className={`w-20 h-20 rounded-2xl ${item.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
                 <item.icon className="w-10 h-10 text-white" />
               </div>
-              <span className={`text-4xl font-extrabold ${item.textColor} mb-1`}>
+              <span className={`text-3xl md:text-4xl font-extrabold ${item.textColor} mb-1`}>
                 {item.number}
               </span>
               <span className="text-lg font-bold text-foreground">
