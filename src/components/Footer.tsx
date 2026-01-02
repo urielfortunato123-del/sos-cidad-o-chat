@@ -22,7 +22,8 @@ const Footer = () => {
           </div>
 
           <div className="flex items-center gap-1 text-sm text-muted-foreground">
-            <span>Feito com</span>
+            <span>Desenvolvido por</span>
+            <span className="font-medium text-foreground">Uriel da Fonseca Fortunato</span>
             <Heart className="w-4 h-4 text-accent fill-accent" />
             <span>para o Brasil</span>
           </div>
