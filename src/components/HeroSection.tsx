@@ -1,8 +1,9 @@
-import { MapPin, Search, Loader2 } from "lucide-react";
+import { MapPin, Search, Loader2, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
-import { smartLookup, AddressResult } from "@/utils/addressLookup";
+import { smartLookup } from "@/utils/addressLookup";
+import { getLocationWithAddress } from "@/utils/geolocation";
 import { useToast } from "@/hooks/use-toast";
 
 interface HeroSectionProps {
@@ -12,6 +13,7 @@ interface HeroSectionProps {
 const HeroSection = ({ onStartChat }: HeroSectionProps) => {
   const [searchValue, setSearchValue] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -58,6 +60,51 @@ const HeroSection = ({ onStartChat }: HeroSectionProps) => {
     }
   };
 
+  const handleGetLocation = async () => {
+    setIsGettingLocation(true);
+    
+    try {
+      const location = await getLocationWithAddress();
+      
+      if (location.city && location.state) {
+        toast({
+          title: "📍 Localização encontrada!",
+          description: `${location.city}, ${location.state}`,
+        });
+        
+        // Se temos CEP, usa ele, senão usa cidade/estado para buscar
+        if (location.cep && location.cep.length >= 5) {
+          onStartChat(location.cep.padEnd(8, '0'), { city: location.city, state: location.state });
+        } else {
+          // Tenta buscar um CEP da cidade
+          const result = await smartLookup(`${location.city}, ${location.state}`);
+          if (result) {
+            onStartChat(result.cep, { city: result.city, state: result.state });
+          } else {
+            onStartChat("00000000", { city: location.city, state: location.state });
+          }
+        }
+      } else {
+        toast({
+          title: "Localização parcial",
+          description: "Não foi possível identificar sua cidade. Por favor, digite manualmente.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao obter localização:", error);
+      toast({
+        title: "Erro de localização",
+        description: error instanceof Error ? error.message : "Não foi possível obter sua localização.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGettingLocation(false);
+    }
+  };
+
+  const isLoading = isSearching || isGettingLocation;
+
   return (
     <section className="relative min-h-[60vh] flex items-center justify-center gradient-hero overflow-hidden">
       {/* Background pattern */}
@@ -86,36 +133,55 @@ const HeroSection = ({ onStartChat }: HeroSectionProps) => {
             Falta de energia, emergências médicas, prefeitura e muito mais.
           </p>
 
-          <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-            <div className="relative flex-1">
-              <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="CEP, cidade ou endereço"
-                value={searchValue}
-                onChange={(e) => setSearchValue(e.target.value)}
-                className="pl-12 h-14 text-lg bg-card border-border rounded-xl shadow-medium"
-                disabled={isSearching}
-              />
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4 max-w-md mx-auto">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="CEP, cidade ou endereço"
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value)}
+                  className="pl-12 h-14 text-lg bg-card border-border rounded-xl shadow-medium"
+                  disabled={isLoading}
+                />
+              </div>
+              <Button 
+                type="submit" 
+                variant="emergency" 
+                size="xl"
+                className="shadow-emergency"
+                disabled={isLoading || !searchValue.trim()}
+              >
+                {isSearching ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Search className="w-5 h-5" />
+                )}
+                {isSearching ? "Buscando..." : "Iniciar"}
+              </Button>
             </div>
-            <Button 
-              type="submit" 
-              variant="emergency" 
-              size="xl"
-              className="shadow-emergency"
-              disabled={isSearching || !searchValue.trim()}
+
+            {/* Botão de geolocalização */}
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              onClick={handleGetLocation}
+              disabled={isLoading}
+              className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/20 hover:text-primary-foreground"
             >
-              {isSearching ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
+              {isGettingLocation ? (
+                <Loader2 className="w-5 h-5 animate-spin mr-2" />
               ) : (
-                <Search className="w-5 h-5" />
+                <Navigation className="w-5 h-5 mr-2" />
               )}
-              {isSearching ? "Buscando..." : "Iniciar"}
+              {isGettingLocation ? "Obtendo localização..." : "Usar minha localização"}
             </Button>
           </form>
 
           <p className="text-sm text-primary-foreground/60 mt-4">
-            Ex: 01310-100, São Paulo, Bauru SP, ou nome da cidade
+            Toque em "Usar minha localização" ou digite manualmente
           </p>
         </div>
       </div>
