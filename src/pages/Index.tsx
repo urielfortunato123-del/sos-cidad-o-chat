@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 const Index = () => {
   const [chatOpen, setChatOpen] = useState(false);
   const [userCep, setUserCep] = useState("");
+  const [userCityInfo, setUserCityInfo] = useState<{ city: string; state: string } | undefined>();
   const [selectedService, setSelectedService] = useState<string | undefined>();
   const [cityContacts, setCityContacts] = useState<CityContacts | null>(null);
   const [contactsModalOpen, setContactsModalOpen] = useState(false);
@@ -34,8 +35,9 @@ const Index = () => {
     }
   }, [userCep, toast]);
 
-  const handleStartChat = (cep: string) => {
+  const handleStartChat = (cep: string, cityInfo?: { city: string; state: string }) => {
     setUserCep(cep);
+    setUserCityInfo(cityInfo);
     setSelectedService(undefined);
     setChatOpen(true);
   };
@@ -99,6 +101,7 @@ const Index = () => {
         onClose={() => setChatOpen(false)}
         initialCep={userCep}
         initialService={selectedService}
+        cityInfo={userCityInfo || (cityContacts ? { city: cityContacts.city, state: cityContacts.state } : undefined)}
       />
 
       <ContactsModal

@@ -1,29 +1,60 @@
-import { MapPin, Search } from "lucide-react";
+import { MapPin, Search, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
+import { smartLookup, AddressResult } from "@/utils/addressLookup";
+import { useToast } from "@/hooks/use-toast";
 
 interface HeroSectionProps {
-  onStartChat: (cep: string) => void;
+  onStartChat: (cep: string, cityInfo?: { city: string; state: string }) => void;
 }
 
 const HeroSection = ({ onStartChat }: HeroSectionProps) => {
-  const [cep, setCep] = useState("");
+  const [searchValue, setSearchValue] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+  const { toast } = useToast();
 
-  const formatCep = (value: string) => {
-    const numbers = value.replace(/\D/g, "");
-    if (numbers.length <= 5) return numbers;
-    return `${numbers.slice(0, 5)}-${numbers.slice(5, 8)}`;
-  };
-
-  const handleCepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCep(formatCep(e.target.value));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (cep.length >= 8) {
-      onStartChat(cep);
+    
+    if (!searchValue.trim()) {
+      toast({
+        title: "Campo vazio",
+        description: "Digite um CEP, cidade ou endereço para continuar.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSearching(true);
+    
+    try {
+      const result = await smartLookup(searchValue);
+      
+      if (result) {
+        onStartChat(result.cep, { city: result.city, state: result.state });
+      } else {
+        // Tenta como CEP direto se tiver 8 dígitos
+        const cleanNumbers = searchValue.replace(/\D/g, "");
+        if (cleanNumbers.length === 8) {
+          onStartChat(searchValue, undefined);
+        } else {
+          toast({
+            title: "Localização não encontrada",
+            description: "Tente digitar o CEP completo (ex: 01310-100) ou cidade com estado (ex: São Paulo, SP)",
+            variant: "destructive",
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Erro na busca:", error);
+      toast({
+        title: "Erro na busca",
+        description: "Não foi possível localizar o endereço. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSearching(false);
     }
   };
 
@@ -60,11 +91,11 @@ const HeroSection = ({ onStartChat }: HeroSectionProps) => {
               <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="Digite seu CEP"
-                value={cep}
-                onChange={handleCepChange}
-                maxLength={9}
+                placeholder="CEP, cidade ou endereço"
+                value={searchValue}
+                onChange={(e) => setSearchValue(e.target.value)}
                 className="pl-12 h-14 text-lg bg-card border-border rounded-xl shadow-medium"
+                disabled={isSearching}
               />
             </div>
             <Button 
@@ -72,15 +103,19 @@ const HeroSection = ({ onStartChat }: HeroSectionProps) => {
               variant="emergency" 
               size="xl"
               className="shadow-emergency"
-              disabled={cep.length < 8}
+              disabled={isSearching || !searchValue.trim()}
             >
-              <Search className="w-5 h-5" />
-              Iniciar
+              {isSearching ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <Search className="w-5 h-5" />
+              )}
+              {isSearching ? "Buscando..." : "Iniciar"}
             </Button>
           </form>
 
           <p className="text-sm text-primary-foreground/60 mt-4">
-            Exemplo: 01310-100 (São Paulo, SP)
+            Ex: 01310-100, São Paulo, Bauru SP, ou nome da cidade
           </p>
         </div>
       </div>
