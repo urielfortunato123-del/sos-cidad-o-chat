@@ -1,56 +1,64 @@
-import { Zap, Heart, Shield, Flame, Building2, Phone } from "lucide-react";
+import { Zap, Heart, Shield, Flame, Building2, Droplets, Phone } from "lucide-react";
 import ServiceCard from "./ServiceCard";
+import { CityContacts } from "@/utils/cityContacts";
 
 interface ServicesSectionProps {
   onServiceClick: (service: string) => void;
+  cityContacts: CityContacts | null;
 }
 
-const services = [
-  {
-    icon: Zap,
-    title: "Falta de Energia",
-    description: "Reporte quedas de energia e acompanhe o status do restabelecimento na sua região.",
-    color: "warning" as const,
-    service: "energia",
-  },
-  {
-    icon: Heart,
-    title: "SAMU - 192",
-    description: "Emergências médicas com atendimento imediato. Ambulância e suporte de vida.",
-    color: "accent" as const,
-    service: "samu",
-  },
-  {
-    icon: Shield,
-    title: "Polícia - 190",
-    description: "Ocorrências policiais, segurança pública e emergências criminais.",
-    color: "primary" as const,
-    service: "policia",
-  },
-  {
-    icon: Flame,
-    title: "Bombeiros - 193",
-    description: "Incêndios, resgates, acidentes e situações de risco à vida.",
-    color: "accent" as const,
-    service: "bombeiros",
-  },
-  {
-    icon: Building2,
-    title: "Prefeitura",
-    description: "Serviços municipais, obras, iluminação pública e atendimento ao cidadão.",
-    color: "success" as const,
-    service: "prefeitura",
-  },
-  {
-    icon: Phone,
-    title: "Outros Serviços",
-    description: "Água, gás, telefonia e outros serviços essenciais da sua região.",
-    color: "primary" as const,
-    service: "outros",
-  },
-];
+const ServicesSection = ({ onServiceClick, cityContacts }: ServicesSectionProps) => {
+  const services = [
+    {
+      icon: Zap,
+      title: "Falta de Energia",
+      description: cityContacts?.energia 
+        ? `${cityContacts.energia.company} - ${cityContacts.city}` 
+        : "Reporte quedas de energia na sua região.",
+      color: "warning" as const,
+      service: "energia",
+    },
+    {
+      icon: Heart,
+      title: "SAMU - 192",
+      description: "Emergências médicas com atendimento imediato. Ambulância e suporte de vida.",
+      color: "accent" as const,
+      service: "samu",
+    },
+    {
+      icon: Shield,
+      title: "Polícia - 190",
+      description: "Ocorrências policiais, segurança pública e emergências criminais.",
+      color: "primary" as const,
+      service: "policia",
+    },
+    {
+      icon: Flame,
+      title: "Bombeiros - 193",
+      description: "Incêndios, resgates, acidentes e situações de risco à vida.",
+      color: "accent" as const,
+      service: "bombeiros",
+    },
+    {
+      icon: Building2,
+      title: "Prefeitura",
+      description: cityContacts?.prefeitura 
+        ? `${cityContacts.prefeitura.name}` 
+        : "Serviços municipais e atendimento ao cidadão.",
+      color: "success" as const,
+      service: "prefeitura",
+    },
+    {
+      icon: Droplets,
+      title: "Água e Saneamento",
+      description: cityContacts?.agua 
+        ? `${cityContacts.agua.company} - ${cityContacts.city}` 
+        : "Falta d'água, vazamentos e serviços de saneamento.",
+      color: "primary" as const,
+      service: "agua",
+    },
+  ];
 
-const ServicesSection = ({ onServiceClick }: ServicesSectionProps) => {
   return (
     <section className="py-20 bg-background">
       <div className="container mx-auto px-4">
@@ -59,7 +67,10 @@ const ServicesSection = ({ onServiceClick }: ServicesSectionProps) => {
             Serviços Disponíveis
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Selecione o serviço que você precisa ou use nosso chat inteligente para ser direcionado automaticamente.
+            {cityContacts 
+              ? `Serviços para ${cityContacts.city}${cityContacts.state ? `, ${cityContacts.state}` : ""}. Toque em um serviço para ver os contatos.`
+              : "Insira seu CEP acima para ver os serviços da sua região."
+            }
           </p>
         </div>
 
