@@ -1,9 +1,10 @@
-import { ZoomIn, ZoomOut, Volume2 } from "lucide-react";
+import { ZoomIn, ZoomOut, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
 const AccessibilityBar = () => {
   const [fontSize, setFontSize] = useState(100);
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   const increaseFontSize = () => {
     const newSize = Math.min(fontSize + 15, 150);
@@ -17,12 +18,29 @@ const AccessibilityBar = () => {
     document.documentElement.style.fontSize = `${newSize}%`;
   };
 
-  const speakText = () => {
-    const text = "Bem-vindo ao SOS Cidadão. Para emergências médicas, pressione o botão vermelho e ligue 192. Para polícia, ligue 190. Para bombeiros, ligue 193.";
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "pt-BR";
-    utterance.rate = 0.9;
-    speechSynthesis.speak(utterance);
+  const toggleSpeech = () => {
+    if (isSpeaking) {
+      // Para a fala
+      speechSynthesis.cancel();
+      setIsSpeaking(false);
+    } else {
+      // Inicia a fala
+      const text = "Bem-vindo ao SOS Cidadão. Para emergências médicas, pressione o botão vermelho e ligue 192. Para polícia, ligue 190. Para bombeiros, ligue 193.";
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = "pt-BR";
+      utterance.rate = 0.9;
+      
+      utterance.onend = () => {
+        setIsSpeaking(false);
+      };
+      
+      utterance.onerror = () => {
+        setIsSpeaking(false);
+      };
+      
+      speechSynthesis.speak(utterance);
+      setIsSpeaking(true);
+    }
   };
 
   return (
@@ -52,11 +70,11 @@ const AccessibilityBar = () => {
       <Button
         variant="ghost"
         size="icon"
-        onClick={speakText}
-        title="Ouvir instruções"
-        className="hover:bg-primary/10"
+        onClick={toggleSpeech}
+        title={isSpeaking ? "Parar áudio" : "Ouvir instruções"}
+        className={isSpeaking ? "bg-primary/20 text-primary" : "hover:bg-primary/10"}
       >
-        <Volume2 className="w-5 h-5" />
+        {isSpeaking ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
       </Button>
     </div>
   );
