@@ -21,14 +21,14 @@ const ServicesSection = ({ onServiceClick, cityContacts }: ServicesSectionProps)
     {
       icon: Heart,
       title: "SAMU - 192",
-      description: "Emergências médicas. Ambulância e suporte de vida 24h.",
+      description: "Ambulância e emergências médicas.",
       color: "accent" as const,
       service: "samu",
     },
     {
       icon: Shield,
       title: "Polícia - 190",
-      description: "Segurança pública e emergências criminais.",
+      description: "Segurança e emergências.",
       color: "primary" as const,
       service: "policia",
     },
