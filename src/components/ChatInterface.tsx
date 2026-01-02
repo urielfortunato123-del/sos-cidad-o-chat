@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import { Send, X, Bot, User, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface Message {
   id: string;
@@ -17,29 +19,27 @@ interface ChatInterfaceProps {
   initialService?: string;
 }
 
-const serviceMessages: Record<string, string> = {
-  energia: "Entendo que você está enfrentando problemas com a energia elétrica. Vou verificar as informações da sua região.",
-  samu: "Esta é uma linha de emergência médica. Se você está em uma situação de risco de vida, ligue imediatamente para 192.",
-  policia: "Para emergências policiais, ligue 190. Posso ajudá-lo a registrar uma ocorrência não emergencial.",
-  bombeiros: "Para emergências com incêndio ou resgate, ligue 193. Como posso ajudá-lo?",
-  prefeitura: "Vou conectá-lo aos serviços da prefeitura da sua cidade. Qual serviço você precisa?",
-  outros: "Posso ajudá-lo com diversos serviços essenciais. O que você está precisando?",
-};
-
 const ChatInterface = ({ isOpen, onClose, initialCep, initialService }: ChatInterfaceProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (isOpen && messages.length === 0) {
+      let welcomeText = `Olá! 👋 Sou o assistente do SOS Cidadão. Identifiquei sua localização pelo CEP ${initialCep}.`;
+      
+      if (initialService) {
+        welcomeText += ` Vi que você clicou em ${initialService}. Como posso te ajudar com isso?`;
+      } else {
+        welcomeText += ` Me conta o que tá acontecendo - pode falar do seu jeito, tipo "tô sem luz" ou "tá faltando água aqui".`;
+      }
+
       const welcomeMessage: Message = {
         id: "1",
         role: "assistant",
-        content: `Olá! Sou o assistente do SOS Cidadão. Identifiquei sua localização pelo CEP ${initialCep}. ${
-          initialService ? serviceMessages[initialService] : "Como posso ajudá-lo hoje?"
-        }`,
+        content: welcomeText,
         timestamp: new Date(),
       };
       setMessages([welcomeMessage]);
@@ -50,39 +50,62 @@ const ChatInterface = ({ isOpen, onClose, initialCep, initialService }: ChatInte
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const simulateResponse = (userMessage: string) => {
+  const sendToAI = async (userMessage: string) => {
     setIsTyping(true);
     
-    setTimeout(() => {
-      let response = "";
-      const lowerMessage = userMessage.toLowerCase();
+    try {
+      // Prepare conversation history (excluding welcome message)
+      const conversationHistory = messages
+        .filter(m => m.id !== "1")
+        .map(m => ({ role: m.role, content: m.content }));
 
-      if (lowerMessage.includes("energia") || lowerMessage.includes("luz") || lowerMessage.includes("apagou")) {
-        response = `Com base no CEP ${initialCep}, a distribuidora de energia da sua região é a CPFL. Para relatar falta de energia, você pode:\n\n📞 Ligar: 0800 010 0010\n📱 WhatsApp: (19) 99768-0010\n💻 Site: www.cpfl.com.br\n\nDeseja que eu forneça mais informações sobre previsão de restabelecimento?`;
-      } else if (lowerMessage.includes("samu") || lowerMessage.includes("ambulância") || lowerMessage.includes("emergência médica")) {
-        response = "⚠️ EMERGÊNCIA MÉDICA\n\n📞 Ligue agora: 192 (SAMU)\n\nEnquanto aguarda:\n• Mantenha a calma\n• Não mova a vítima desnecessariamente\n• Descreva claramente a situação ao atendente\n\nPosso ajudar com mais alguma informação?";
-      } else if (lowerMessage.includes("tempo") || lowerMessage.includes("quando") || lowerMessage.includes("previsão")) {
-        response = `Consultando informações para o CEP ${initialCep}...\n\nNo momento, não há ocorrências registradas de queda de energia na sua região. Se você está sem luz, recomendo entrar em contato com a CPFL pelo 0800 010 0010 para verificar se há manutenção programada.`;
-      } else if (lowerMessage.includes("prefeitura") || lowerMessage.includes("cidade")) {
-        response = `Para serviços da prefeitura no CEP ${initialCep}, você pode:\n\n🏛️ Atendimento ao Cidadão: 156\n📧 Ouvidoria Municipal\n🌐 Portal de Serviços Online\n\nQual serviço específico você precisa? (iluminação pública, obras, limpeza urbana, etc.)`;
-      } else {
-        response = `Entendi sua solicitação. Para melhor atendê-lo no CEP ${initialCep}, preciso de mais detalhes:\n\n• Qual serviço você está buscando?\n• É uma emergência?\n• Há quanto tempo está enfrentando esse problema?\n\nEstou aqui para ajudar!`;
+      const { data, error } = await supabase.functions.invoke('chat-ai', {
+        body: { 
+          message: userMessage,
+          cep: initialCep,
+          conversationHistory
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
       }
+
+      const aiResponse = data?.response || "Desculpe, não consegui processar sua mensagem. Tente novamente.";
 
       const newMessage: Message = {
         id: Date.now().toString(),
         role: "assistant",
-        content: response,
+        content: aiResponse,
         timestamp: new Date(),
       };
       
       setMessages((prev) => [...prev, newMessage]);
+    } catch (error) {
+      console.error('Error calling AI:', error);
+      
+      // Fallback response
+      const fallbackMessage: Message = {
+        id: Date.now().toString(),
+        role: "assistant",
+        content: `Ops, tive um probleminha técnico 😅 Mas posso te ajudar assim:\n\n🚑 SAMU: 192\n🚒 Bombeiros: 193\n🚔 Polícia: 190\n⚡ Energia: verifique a concessionária da sua região\n💧 Água: entre em contato com o SAE local\n\nQuer tentar de novo?`,
+        timestamp: new Date(),
+      };
+      
+      setMessages((prev) => [...prev, fallbackMessage]);
+      
+      toast({
+        title: "Erro de conexão",
+        description: "Não foi possível conectar ao assistente. Mostrando contatos de emergência.",
+        variant: "destructive",
+      });
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   const handleSend = () => {
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim() || isTyping) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -92,8 +115,9 @@ const ChatInterface = ({ isOpen, onClose, initialCep, initialService }: ChatInte
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    const messageToSend = inputValue;
     setInputValue("");
-    simulateResponse(inputValue);
+    sendToAI(messageToSend);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -194,8 +218,9 @@ const ChatInterface = ({ isOpen, onClose, initialCep, initialService }: ChatInte
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyPress}
-              placeholder="Digite sua mensagem..."
+              placeholder="Fala comigo... ex: tô sem água"
               className="flex-1 h-12 rounded-xl"
+              disabled={isTyping}
             />
             <Button
               onClick={handleSend}
