@@ -17,18 +17,27 @@ interface ChatInterfaceProps {
   onClose: () => void;
   initialCep: string;
   initialService?: string;
+  cityInfo?: { city: string; state: string };
 }
 
-const ChatInterface = ({ isOpen, onClose, initialCep, initialService }: ChatInterfaceProps) => {
+const ChatInterface = ({ isOpen, onClose, initialCep, initialService, cityInfo }: ChatInterfaceProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
+  const locationDisplay = cityInfo 
+    ? `${cityInfo.city}/${cityInfo.state}` 
+    : `CEP: ${initialCep}`;
+
   useEffect(() => {
     if (isOpen && messages.length === 0) {
-      let welcomeText = `Olá! 👋 Sou o assistente do SOS Cidadão. Identifiquei sua localização pelo CEP ${initialCep}.`;
+      const locationText = cityInfo 
+        ? `${cityInfo.city}, ${cityInfo.state}` 
+        : `CEP ${initialCep}`;
+      
+      let welcomeText = `Olá! 👋 Sou o assistente do SOS Cidadão. Identifiquei sua localização: ${locationText}.`;
       
       if (initialService) {
         welcomeText += ` Vi que você clicou em ${initialService}. Como posso te ajudar com isso?`;
@@ -44,7 +53,7 @@ const ChatInterface = ({ isOpen, onClose, initialCep, initialService }: ChatInte
       };
       setMessages([welcomeMessage]);
     }
-  }, [isOpen, initialCep, initialService, messages.length]);
+  }, [isOpen, initialCep, initialService, messages.length, cityInfo]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -142,7 +151,7 @@ const ChatInterface = ({ isOpen, onClose, initialCep, initialService }: ChatInte
               <h3 className="font-semibold text-primary-foreground">Assistente SOS</h3>
               <div className="flex items-center gap-1 text-xs text-primary-foreground/80">
                 <MapPin className="w-3 h-3" />
-                <span>CEP: {initialCep}</span>
+                <span>{locationDisplay}</span>
               </div>
             </div>
           </div>
