@@ -40,9 +40,9 @@ const ServiceCard = ({ icon: Icon, title, description, color, onClick, delay = 0
       <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${colorStyles[color].icon}`}>
         <Icon className="w-7 h-7" />
       </div>
-      <div>
+      <div className="w-full">
         <h3 className="font-bold text-lg text-foreground mb-1">{title}</h3>
-        <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
+        <p className="text-sm text-muted-foreground leading-relaxed break-words">{description}</p>
       </div>
     </Button>
   );
