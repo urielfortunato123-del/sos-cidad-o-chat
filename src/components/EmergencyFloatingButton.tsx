@@ -1,8 +1,9 @@
-import { Phone, X, Heart, Shield, Flame } from "lucide-react";
+import { Phone, X, Heart, Shield, Flame, HandHeart } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
 const emergencyNumbers = [
+  { number: "188", label: "CVV - Apoio Emocional", icon: HandHeart, color: "bg-yellow-500", description: "Prevenção ao suicídio 24h" },
   { number: "192", label: "SAMU", icon: Heart, color: "bg-accent" },
   { number: "190", label: "Polícia", icon: Shield, color: "bg-primary" },
   { number: "193", label: "Bombeiros", icon: Flame, color: "bg-warning" },
@@ -30,9 +31,12 @@ const EmergencyFloatingButton = () => {
               <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
                 <item.icon className="w-6 h-6" />
               </div>
-              <div className="text-left">
+              <div className="text-left flex-1">
                 <span className="block text-2xl font-bold">{item.number}</span>
                 <span className="text-sm opacity-90">{item.label}</span>
+                {item.description && (
+                  <span className="text-xs opacity-75 block">{item.description}</span>
+                )}
               </div>
             </button>
           ))}
