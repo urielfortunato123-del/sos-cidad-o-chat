@@ -9,10 +9,13 @@ import Footer from "@/components/Footer";
 import EmergencyFloatingButton from "@/components/EmergencyFloatingButton";
 import AccessibilityBar from "@/components/AccessibilityBar";
 import BackgroundMusic from "@/components/BackgroundMusic";
+import FeedbackModal from "@/components/FeedbackModal";
 import { getContactsByCep, CityContacts, emergencyNumbers } from "@/utils/cityContacts";
 import { useToast } from "@/hooks/use-toast";
+import { useAccessLog } from "@/hooks/useAccessLog";
 
 const Index = () => {
+  useAccessLog('/');
   const [chatOpen, setChatOpen] = useState(false);
   const [userCep, setUserCep] = useState("");
   const [userCityInfo, setUserCityInfo] = useState<{ city: string; state: string } | undefined>();
@@ -86,6 +89,7 @@ const Index = () => {
       <AccessibilityBar />
       <EmergencyFloatingButton />
       <BackgroundMusic />
+      <FeedbackModal />
       
       <main className="pt-16">
         <HeroSection onStartChat={handleStartChat} />
