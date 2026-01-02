@@ -301,6 +301,45 @@ const cityDatabase: Record<string, CityContacts> = {
       website: "www.sulgas.rs.gov.br",
     },
   },
+
+  // Bauru (17000-000 a 17109-999)
+  "bauru-sp": {
+    city: "Bauru",
+    state: "SP",
+    prefeitura: {
+      name: "Prefeitura de Bauru",
+      phones: [
+        { label: "Câmara Municipal", number: "(14) 3235-0600" },
+        { label: "Ouvidoria", number: "(14) 3235-0601" },
+        { label: "Cohab", number: "(14) 3235-9222" },
+      ],
+      website: "www.bauru.sp.gov.br",
+    },
+    energia: {
+      company: "CPFL Paulista",
+      phones: [
+        { label: "Central", number: "0800-010-0010" },
+        { label: "WhatsApp", number: "(19) 99768-0010" },
+      ],
+      website: "www.cpfl.com.br",
+    },
+    agua: {
+      company: "DAE Bauru",
+      phones: [
+        { label: "Central 24h", number: "0800-771-0195" },
+        { label: "E-mail", number: "0800@daebauru.sp.gov.br" },
+      ],
+      website: "www.daebauru.sp.gov.br",
+    },
+    gas: {
+      company: "Comgás",
+      phones: [
+        { label: "Emergência", number: "0800-011-0197" },
+        { label: "Atendimento", number: "0800-011-1850" },
+      ],
+      website: "www.comgas.com.br",
+    },
+  },
 };
 
 // Mapeamento de faixas de CEP para cidades
@@ -309,6 +348,8 @@ const cepRanges: { start: number; end: number; cityKey: string }[] = [
   { start: 1000000, end: 9999999, cityKey: "sao-paulo-sp" },
   // Campinas e região
   { start: 13000000, end: 13139999, cityKey: "campinas-sp" },
+  // Bauru
+  { start: 17000000, end: 17109999, cityKey: "bauru-sp" },
   // Belo Horizonte
   { start: 30000000, end: 34999999, cityKey: "belo-horizonte-mg" },
   // Rio de Janeiro
