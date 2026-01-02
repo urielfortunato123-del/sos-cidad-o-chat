@@ -8,6 +8,7 @@ import ContactsModal from "@/components/ContactsModal";
 import Footer from "@/components/Footer";
 import EmergencyFloatingButton from "@/components/EmergencyFloatingButton";
 import AccessibilityBar from "@/components/AccessibilityBar";
+import BackgroundMusic from "@/components/BackgroundMusic";
 import { getContactsByCep, CityContacts, emergencyNumbers } from "@/utils/cityContacts";
 import { useToast } from "@/hooks/use-toast";
 
@@ -84,6 +85,7 @@ const Index = () => {
       <Header />
       <AccessibilityBar />
       <EmergencyFloatingButton />
+      <BackgroundMusic />
       
       <main className="pt-16">
         <HeroSection onStartChat={handleStartChat} />
