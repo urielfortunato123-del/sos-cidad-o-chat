@@ -2,7 +2,7 @@ import { Shield, Heart } from "lucide-react";
 
 const Footer = () => {
   return (
-    <footer className="bg-card border-t border-border py-12">
+    <footer id="sobre" className="bg-card border-t border-border py-12 scroll-mt-20">
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">

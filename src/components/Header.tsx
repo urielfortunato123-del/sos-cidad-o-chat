@@ -5,6 +5,19 @@ import { useState } from "react";
 const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth" });
+    }
+    setMenuOpen(false);
+  };
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    setMenuOpen(false);
+  };
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-card/80 backdrop-blur-lg border-b border-border">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
@@ -28,16 +41,25 @@ const Header = () => {
         </Button>
 
         <nav className="hidden md:flex items-center gap-6">
-          <a href="#" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-smooth">
+          <button 
+            onClick={scrollToTop}
+            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-smooth"
+          >
             Início
-          </a>
-          <a href="#" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-smooth">
+          </button>
+          <button 
+            onClick={() => scrollToSection("servicos")}
+            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-smooth"
+          >
             Serviços
-          </a>
-          <a href="#" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-smooth">
+          </button>
+          <button 
+            onClick={() => scrollToSection("sobre")}
+            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-smooth"
+          >
             Sobre
-          </a>
-          <Button variant="hero" size="sm">
+          </button>
+          <Button variant="hero" size="sm" onClick={() => scrollToSection("emergencia")}>
             Emergência
           </Button>
         </nav>
@@ -46,16 +68,25 @@ const Header = () => {
       {menuOpen && (
         <div className="md:hidden bg-card border-b border-border animate-fade-in">
           <nav className="container mx-auto px-4 py-4 flex flex-col gap-3">
-            <a href="#" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-smooth py-2">
+            <button 
+              onClick={scrollToTop}
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-smooth py-2 text-left"
+            >
               Início
-            </a>
-            <a href="#" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-smooth py-2">
+            </button>
+            <button 
+              onClick={() => scrollToSection("servicos")}
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-smooth py-2 text-left"
+            >
               Serviços
-            </a>
-            <a href="#" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-smooth py-2">
+            </button>
+            <button 
+              onClick={() => scrollToSection("sobre")}
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-smooth py-2 text-left"
+            >
               Sobre
-            </a>
-            <Button variant="emergency" size="lg" className="mt-2">
+            </button>
+            <Button variant="emergency" size="lg" className="mt-2" onClick={() => scrollToSection("emergencia")}>
               Emergência
             </Button>
           </nav>
