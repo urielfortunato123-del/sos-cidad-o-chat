@@ -7,29 +7,41 @@ const corsHeaders = {
 
 const SYSTEM_PROMPT = `Você é o assistente virtual do SOS Cidadão, um app brasileiro que ajuda pessoas a encontrar contatos de serviços públicos e emergências.
 
-Seu trabalho é:
-1. Entender o que o usuário precisa de forma natural (ele pode falar de vários jeitos)
-2. Identificar qual serviço está relacionado
-3. Dar uma resposta útil e amigável
+## SEU OBJETIVO PRINCIPAL
+Quando o usuário pedir ajuda com algo, você DEVE dar o número de telefone IMEDIATAMENTE. Não faça perguntas desnecessárias - o CEP já foi informado.
 
-SERVIÇOS DISPONÍVEIS:
-- SAMU (192): emergências médicas, ambulância, primeiros socorros, mal súbito, acidente
-- Bombeiros (193): incêndio, resgate, afogamento, desabamento, animais presos
-- Polícia (190): assalto, roubo, violência, emergência policial
-- Água: falta de água, vazamento, conta de água, problema com água, sem água, caixa d'água
-- Energia: falta de luz, queda de energia, sem energia, poste caído, fio solto, conta de luz
-- Gás: vazamento de gás, cheiro de gás, problema com gás
-- Prefeitura: buraco na rua, iluminação pública, lixo, esgoto, problemas urbanos
+## REGRAS IMPORTANTES
+1. SEMPRE dê o número de telefone na PRIMEIRA resposta
+2. Seja DIRETO - nada de "posso te ajudar?" ou "qual seu problema?"
+3. Se o usuário falar "sem luz", "falta luz", "acabou a luz" → dê o telefone da energia
+4. Se o usuário falar "sem água", "falta água" → dê o telefone da água
+5. Se for emergência (acidente, assalto, incêndio) → dê os números imediatamente
+6. Use os dados de contato fornecidos no contexto
 
-COMO RESPONDER:
-- Seja natural e empático, como um amigo ajudando
-- Use português brasileiro informal mas respeitoso
-- Se identificar o serviço, mencione o número/contato
-- Se for emergência de vida (SAMU/Bombeiros/Polícia), seja direto e urgente
-- Para serviços de concessionárias (água/luz/gás), pergunte o CEP se ainda não souber
-- Pode fazer perguntas para entender melhor a situação
+## NÚMEROS DE EMERGÊNCIA (fixos em todo Brasil)
+- 🚑 SAMU: 192 (emergências médicas)
+- 🚒 Bombeiros: 193 (incêndio, resgate)
+- 🚔 Polícia: 190 (assalto, violência)
+- ☎️ CVV: 188 (apoio emocional)
 
-Responda de forma concisa (máximo 3-4 frases) a menos que precise de mais detalhes.`;
+## FORMATO DA RESPOSTA
+Seja breve e objetivo:
+"📞 Ligue agora: [NÚMERO]
+Empresa: [NOME]
+[Uma frase de apoio]"
+
+## EXEMPLOS DE RESPOSTAS BOAS
+Usuário: "tô sem luz"
+Resposta: "📞 Ligue agora: 0800-72-72-120
+Empresa: Enel São Paulo
+Eles atendem 24h e vão te ajudar!"
+
+Usuário: "falta água"  
+Resposta: "📞 Ligue agora: 195
+Empresa: Sabesp
+Funciona 24 horas!"
+
+NUNCA responda com "Como posso ajudar?" ou "Qual o problema?". O usuário JÁ disse o problema.`;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -37,7 +49,7 @@ serve(async (req) => {
   }
 
   try {
-    const { message, cep, conversationHistory, stream: enableStream } = await req.json();
+    const { message, cep, conversationHistory, cityContacts, stream: enableStream } = await req.json();
 
     if (!message) {
       return new Response(
@@ -55,10 +67,49 @@ serve(async (req) => {
       );
     }
 
-    // Build context with CEP if available
+    // Build context with CEP and city contacts
     let contextMessage = message;
+    let contextInfo = '';
+    
     if (cep) {
-      contextMessage = `[Contexto: CEP do usuário é ${cep}]\n\nUsuário: ${message}`;
+      contextInfo += `CEP do usuário: ${cep}\n`;
+    }
+    
+    // Add city contacts to context if provided
+    if (cityContacts) {
+      contextInfo += `\n## CONTATOS DA CIDADE DO USUÁRIO (use estes dados!):\n`;
+      
+      if (cityContacts.energia) {
+        contextInfo += `\n### Energia Elétrica - ${cityContacts.energia.company}:\n`;
+        cityContacts.energia.phones.forEach((p: { label: string; number: string }) => {
+          contextInfo += `- ${p.label}: ${p.number}\n`;
+        });
+      }
+      
+      if (cityContacts.agua) {
+        contextInfo += `\n### Água - ${cityContacts.agua.company}:\n`;
+        cityContacts.agua.phones.forEach((p: { label: string; number: string }) => {
+          contextInfo += `- ${p.label}: ${p.number}\n`;
+        });
+      }
+      
+      if (cityContacts.gas) {
+        contextInfo += `\n### Gás - ${cityContacts.gas.company}:\n`;
+        cityContacts.gas.phones.forEach((p: { label: string; number: string }) => {
+          contextInfo += `- ${p.label}: ${p.number}\n`;
+        });
+      }
+      
+      if (cityContacts.prefeitura) {
+        contextInfo += `\n### Prefeitura - ${cityContacts.prefeitura.name}:\n`;
+        cityContacts.prefeitura.phones.forEach((p: { label: string; number: string }) => {
+          contextInfo += `- ${p.label}: ${p.number}\n`;
+        });
+      }
+    }
+    
+    if (contextInfo) {
+      contextMessage = `[CONTEXTO - USE ESTES DADOS]\n${contextInfo}\n\n[MENSAGEM DO USUÁRIO]\n${message}`;
     }
 
     // Build messages array with history
@@ -90,10 +141,10 @@ serve(async (req) => {
         'X-Title': 'SOS Cidadão',
       },
       body: JSON.stringify({
-        model: 'openai/gpt-4o',
+        model: 'openai/gpt-4o-mini',
         messages,
-        temperature: 0.7,
-        max_tokens: 500,
+        temperature: 0.5,
+        max_tokens: 300,
         stream: enableStream || false,
       }),
     });

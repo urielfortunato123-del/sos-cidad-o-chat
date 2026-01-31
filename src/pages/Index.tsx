@@ -108,6 +108,7 @@ const Index = () => {
         initialCep={userCep}
         initialService={selectedService}
         cityInfo={userCityInfo || (cityContacts ? { city: cityContacts.city, state: cityContacts.state } : undefined)}
+        cityContacts={cityContacts}
       />
 
       <ContactsModal
