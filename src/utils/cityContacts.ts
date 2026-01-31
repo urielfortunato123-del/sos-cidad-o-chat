@@ -1,5 +1,8 @@
 // Dados de contatos por cidade baseado em faixas de CEP
 // CEP ranges: https://www.correios.com.br/enviar/precisa-de-ajuda/qual-meu-cep
+// Quando cidade específica não existe, usa fallback estadual
+
+import { getStateContacts, StateContacts } from "./stateContacts";
 
 export interface CityContacts {
   city: string;
@@ -1139,13 +1142,33 @@ export const getContactsByCep = (cep: string): CityContacts | null => {
 
   const cepNumber = parseInt(cleanCep, 10);
 
+  // Primeiro tenta encontrar cidade específica
   for (const range of cepRanges) {
     if (cepNumber >= range.start && cepNumber <= range.end) {
       return cityDatabase[range.cityKey] || null;
     }
   }
 
-  // Retorna contatos genéricos se não encontrar a cidade
+  // Se não encontrou cidade, usa FALLBACK ESTADUAL
+  const stateContacts = getStateContacts(cep);
+  
+  if (stateContacts) {
+    return {
+      city: `Região ${stateContacts.stateName}`,
+      state: stateContacts.state,
+      prefeitura: {
+        name: "Prefeitura Municipal",
+        phones: [
+          { label: "Central 156", number: "156" },
+        ],
+      },
+      energia: stateContacts.energia,
+      agua: stateContacts.agua,
+      gas: stateContacts.gas,
+    };
+  }
+
+  // Último fallback - contatos genéricos nacionais
   return {
     city: "Sua Cidade",
     state: "",
