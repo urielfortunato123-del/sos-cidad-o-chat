@@ -46,11 +46,11 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      console.error('LOVABLE_API_KEY not configured');
+    const OPENROUTER_API_KEY = Deno.env.get('OPENROUTER_API_KEY');
+    if (!OPENROUTER_API_KEY) {
+      console.error('OPENROUTER_API_KEY not configured');
       return new Response(
-        JSON.stringify({ error: 'API key não configurada' }),
+        JSON.stringify({ error: 'API key do OpenRouter não configurada' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -79,16 +79,18 @@ serve(async (req) => {
     // Add current message
     messages.push({ role: 'user', content: contextMessage });
 
-    console.log('Sending request to AI gateway...');
+    console.log('Sending request to OpenRouter...');
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
         'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://soscidadao.com.br',
+        'X-Title': 'SOS Cidadão',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'google/gemini-2.0-flash-exp:free',
         messages,
         temperature: 0.7,
         max_tokens: 500,
