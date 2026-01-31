@@ -37,7 +37,7 @@ serve(async (req) => {
   }
 
   try {
-    const { message, cep, conversationHistory } = await req.json();
+    const { message, cep, conversationHistory, stream: enableStream } = await req.json();
 
     if (!message) {
       return new Response(
@@ -62,13 +62,13 @@ serve(async (req) => {
     }
 
     // Build messages array with history
-    const messages = [
+    const messages: Array<{ role: string; content: string }> = [
       { role: 'system', content: SYSTEM_PROMPT },
     ];
 
     // Add conversation history if provided
     if (conversationHistory && Array.isArray(conversationHistory)) {
-      for (const msg of conversationHistory.slice(-10)) { // Keep last 10 messages for context
+      for (const msg of conversationHistory.slice(-10)) {
         messages.push({
           role: msg.role === 'user' ? 'user' : 'assistant',
           content: msg.content
@@ -90,10 +90,11 @@ serve(async (req) => {
         'X-Title': 'SOS Cidadão',
       },
       body: JSON.stringify({
-        model: 'openai/gpt-3.5-turbo',
+        model: 'openai/gpt-4o',
         messages,
         temperature: 0.7,
         max_tokens: 500,
+        stream: enableStream || false,
       }),
     });
 
@@ -111,13 +112,26 @@ serve(async (req) => {
         );
       }
       const errorText = await response.text();
-      console.error('AI gateway error:', response.status, errorText);
+      console.error('OpenRouter error:', response.status, errorText);
       return new Response(
         JSON.stringify({ error: 'Erro ao processar mensagem' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    // Streaming response - pass through the stream
+    if (enableStream && response.body) {
+      return new Response(response.body, {
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        }
+      });
+    }
+
+    // Non-streaming response
     const data = await response.json();
     const aiResponse = data.choices?.[0]?.message?.content || 'Desculpe, não consegui processar sua mensagem.';
 
