@@ -90,7 +90,7 @@ serve(async (req) => {
         'X-Title': 'SOS Cidadão',
       },
       body: JSON.stringify({
-        model: 'meta-llama/llama-3.3-8b-instruct:free',
+        model: 'openai/gpt-3.5-turbo',
         messages,
         temperature: 0.7,
         max_tokens: 500,
