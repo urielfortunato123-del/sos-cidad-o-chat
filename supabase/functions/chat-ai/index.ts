@@ -90,7 +90,7 @@ serve(async (req) => {
         'X-Title': 'SOS Cidadão',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.0-flash-exp:free',
+        model: 'meta-llama/llama-3.3-8b-instruct:free',
         messages,
         temperature: 0.7,
         max_tokens: 500,
