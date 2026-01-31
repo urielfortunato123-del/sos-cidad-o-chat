@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { CityContacts } from "@/utils/cityContacts";
 
 interface Message {
   id: string;
@@ -18,9 +19,10 @@ interface ChatInterfaceProps {
   initialCep: string;
   initialService?: string;
   cityInfo?: { city: string; state: string };
+  cityContacts?: CityContacts | null;
 }
 
-const ChatInterface = ({ isOpen, onClose, initialCep, initialService, cityInfo }: ChatInterfaceProps) => {
+const ChatInterface = ({ isOpen, onClose, initialCep, initialService, cityInfo, cityContacts }: ChatInterfaceProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -73,7 +75,8 @@ const ChatInterface = ({ isOpen, onClose, initialCep, initialService, cityInfo }
         body: { 
           message: userMessage,
           cep: initialCep,
-          conversationHistory
+          conversationHistory,
+          cityContacts: cityContacts || null
         }
       });
 
