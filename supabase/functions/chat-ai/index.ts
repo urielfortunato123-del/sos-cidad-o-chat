@@ -5,44 +5,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const SYSTEM_PROMPT = `Você é o assistente virtual do SOS Cidadão, um app brasileiro que ajuda pessoas a encontrar contatos de serviços públicos e emergências.
-
-## SEU OBJETIVO PRINCIPAL
-Quando o usuário pedir ajuda com algo, você DEVE dar o número de telefone IMEDIATAMENTE. Não faça perguntas desnecessárias - o CEP já foi informado.
-
-## REGRAS IMPORTANTES
-1. SEMPRE dê o número de telefone na PRIMEIRA resposta
-2. Seja DIRETO - nada de "posso te ajudar?" ou "qual seu problema?"
-3. Se o usuário falar "sem luz", "falta luz", "acabou a luz" → dê o telefone da energia
-4. Se o usuário falar "sem água", "falta água" → dê o telefone da água
-5. Se for emergência (acidente, assalto, incêndio) → dê os números imediatamente
-6. Use os dados de contato fornecidos no contexto
-
-## NÚMEROS DE EMERGÊNCIA (fixos em todo Brasil)
-- 🚑 SAMU: 192 (emergências médicas)
-- 🚒 Bombeiros: 193 (incêndio, resgate)
-- 🚔 Polícia: 190 (assalto, violência)
-- ☎️ CVV: 188 (apoio emocional)
-
-## FORMATO DA RESPOSTA
-Seja breve e objetivo:
-"📞 Ligue agora: [NÚMERO]
-Empresa: [NOME]
-[Uma frase de apoio]"
-
-## EXEMPLOS DE RESPOSTAS BOAS
-Usuário: "tô sem luz"
-Resposta: "📞 Ligue agora: 0800-72-72-120
-Empresa: Enel São Paulo
-Eles atendem 24h e vão te ajudar!"
-
-Usuário: "falta água"  
-Resposta: "📞 Ligue agora: 195
-Empresa: Sabesp
-Funciona 24 horas!"
-
-NUNCA responda com "Como posso ajudar?" ou "Qual o problema?". O usuário JÁ disse o problema.`;
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -67,59 +29,88 @@ serve(async (req) => {
       );
     }
 
-    // Build context with CEP and city contacts
-    let contextMessage = message;
-    let contextInfo = '';
-    
-    if (cep) {
-      contextInfo += `CEP do usuário: ${cep}\n`;
-    }
-    
-    // Add city contacts to context if provided
+    // Log received data
+    console.log('CEP recebido:', cep);
+    console.log('CityContacts recebido:', JSON.stringify(cityContacts));
+
+    // Build dynamic system prompt with actual contact data
+    let systemPrompt = `Você é o assistente do SOS Cidadão. Seu ÚNICO trabalho é dar números de telefone para o usuário.
+
+## REGRA ABSOLUTA
+Quando o usuário pedir ajuda com água, luz, gás ou prefeitura, você DEVE responder com o número de telefone IMEDIATAMENTE. Não invente números - use APENAS os dados abaixo.
+
+## NÚMEROS DE EMERGÊNCIA (válidos em todo Brasil)
+- 🚑 SAMU: 192
+- 🚒 Bombeiros: 193  
+- 🚔 Polícia: 190
+- ☎️ CVV: 188
+`;
+
+    // Add city-specific contacts
     if (cityContacts) {
-      contextInfo += `\n## CONTATOS DA CIDADE DO USUÁRIO (use estes dados!):\n`;
+      systemPrompt += `\n## CONTATOS DA CIDADE: ${cityContacts.city}/${cityContacts.state}\n`;
       
-      if (cityContacts.energia) {
-        contextInfo += `\n### Energia Elétrica - ${cityContacts.energia.company}:\n`;
-        cityContacts.energia.phones.forEach((p: { label: string; number: string }) => {
-          contextInfo += `- ${p.label}: ${p.number}\n`;
+      if (cityContacts.agua) {
+        systemPrompt += `\n### 💧 ÁGUA - ${cityContacts.agua.company}\n`;
+        cityContacts.agua.phones.forEach((p: { label: string; number: string }) => {
+          if (!p.number.includes('@')) {
+            systemPrompt += `📞 ${p.label}: ${p.number}\n`;
+          }
         });
       }
       
-      if (cityContacts.agua) {
-        contextInfo += `\n### Água - ${cityContacts.agua.company}:\n`;
-        cityContacts.agua.phones.forEach((p: { label: string; number: string }) => {
-          contextInfo += `- ${p.label}: ${p.number}\n`;
+      if (cityContacts.energia) {
+        systemPrompt += `\n### ⚡ ENERGIA - ${cityContacts.energia.company}\n`;
+        cityContacts.energia.phones.forEach((p: { label: string; number: string }) => {
+          systemPrompt += `📞 ${p.label}: ${p.number}\n`;
         });
       }
       
       if (cityContacts.gas) {
-        contextInfo += `\n### Gás - ${cityContacts.gas.company}:\n`;
+        systemPrompt += `\n### 🔥 GÁS - ${cityContacts.gas.company}\n`;
         cityContacts.gas.phones.forEach((p: { label: string; number: string }) => {
-          contextInfo += `- ${p.label}: ${p.number}\n`;
+          systemPrompt += `📞 ${p.label}: ${p.number}\n`;
         });
       }
       
       if (cityContacts.prefeitura) {
-        contextInfo += `\n### Prefeitura - ${cityContacts.prefeitura.name}:\n`;
+        systemPrompt += `\n### 🏛️ PREFEITURA - ${cityContacts.prefeitura.name}\n`;
         cityContacts.prefeitura.phones.forEach((p: { label: string; number: string }) => {
-          contextInfo += `- ${p.label}: ${p.number}\n`;
+          systemPrompt += `📞 ${p.label}: ${p.number}\n`;
         });
       }
-    }
-    
-    if (contextInfo) {
-      contextMessage = `[CONTEXTO - USE ESTES DADOS]\n${contextInfo}\n\n[MENSAGEM DO USUÁRIO]\n${message}`;
+    } else {
+      systemPrompt += `\n## ATENÇÃO: Não tenho os contatos específicos desta cidade. Oriente o usuário a verificar na conta de água/luz ou ligar 156.\n`;
     }
 
-    // Build messages array with history
+    systemPrompt += `
+## COMO RESPONDER
+Quando usuário disser "sem água", "falta água", "tô sem água":
+→ Responda: "📞 Ligue agora: [NÚMERO DA ÁGUA]
+Empresa: [NOME]
+Atendimento 24h!"
+
+Quando usuário disser "sem luz", "falta luz", "acabou a luz":
+→ Responda: "📞 Ligue agora: [NÚMERO DA ENERGIA]
+Empresa: [NOME]
+Atendimento 24h!"
+
+## PROIBIDO
+- NÃO pergunte "qual o problema?" - o usuário já disse
+- NÃO diga "informe o CEP" - já temos o CEP
+- NÃO invente números - use APENAS os dados acima
+- NÃO dê respostas longas - seja DIRETO`;
+
+    console.log('System prompt gerado com contatos');
+
+    // Build messages array
     const messages: Array<{ role: string; content: string }> = [
-      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'system', content: systemPrompt },
     ];
 
-    // Add conversation history if provided
+    // Add conversation history if provided (limit to last 6 messages)
     if (conversationHistory && Array.isArray(conversationHistory)) {
-      for (const msg of conversationHistory.slice(-10)) {
+      for (const msg of conversationHistory.slice(-6)) {
         messages.push({
           role: msg.role === 'user' ? 'user' : 'assistant',
           content: msg.content
@@ -128,7 +119,7 @@ serve(async (req) => {
     }
 
     // Add current message
-    messages.push({ role: 'user', content: contextMessage });
+    messages.push({ role: 'user', content: message });
 
     console.log('Sending request to OpenRouter...');
 
@@ -143,8 +134,8 @@ serve(async (req) => {
       body: JSON.stringify({
         model: 'openai/gpt-4o-mini',
         messages,
-        temperature: 0.5,
-        max_tokens: 300,
+        temperature: 0.3,
+        max_tokens: 200,
         stream: enableStream || false,
       }),
     });
@@ -170,7 +161,7 @@ serve(async (req) => {
       );
     }
 
-    // Streaming response - pass through the stream
+    // Streaming response
     if (enableStream && response.body) {
       return new Response(response.body, {
         headers: { 
