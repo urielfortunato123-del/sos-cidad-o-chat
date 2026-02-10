@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { Navigation, Phone, Loader2, AlertTriangle, RefreshCw, ExternalLink, Fuel, Wrench, Zap, Car, Droplets, Filter } from "lucide-react";
+import { Navigation, Phone, Loader2, AlertTriangle, RefreshCw, ExternalLink, Fuel, Wrench, Zap, Car, Droplets, Filter, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DiagnosisResult } from "@/pages/EmergenciaVeicular";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap, LayersControl } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { motion, AnimatePresence } from "framer-motion";
@@ -335,10 +335,32 @@ const VehicleMap = ({ diagnosis, onBack, onEmergency }: VehicleMapProps) => {
             style={{ height: "100%", width: "100%" }}
             zoomControl={false}
           >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
+            <LayersControl position="topright">
+              <LayersControl.BaseLayer checked name="Padrão">
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+              </LayersControl.BaseLayer>
+              <LayersControl.BaseLayer name="Satélite">
+                <TileLayer
+                  attribution='&copy; Esri'
+                  url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                />
+              </LayersControl.BaseLayer>
+              <LayersControl.BaseLayer name="Topográfico">
+                <TileLayer
+                  attribution='&copy; OpenTopoMap'
+                  url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
+                />
+              </LayersControl.BaseLayer>
+              <LayersControl.BaseLayer name="Escuro">
+                <TileLayer
+                  attribution='&copy; CartoDB'
+                  url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                />
+              </LayersControl.BaseLayer>
+            </LayersControl>
             <RecenterMap lat={userLocation.lat} lon={userLocation.lon} />
             <Marker position={[userLocation.lat, userLocation.lon]} icon={userIcon}>
               <Popup>📍 Você está aqui</Popup>
