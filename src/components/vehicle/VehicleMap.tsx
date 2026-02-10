@@ -32,15 +32,16 @@ interface NearbyPlace {
   phone?: string;
 }
 
-type ServiceFilter = "todos" | "oficina" | "posto" | "autoeletrica" | "autopecas" | "troca_oleo" | "guincho";
+type ServiceFilter = "todos" | "oficina" | "posto" | "autoeletrica" | "autopecas" | "troca_oleo" | "borracharia" | "guincho";
 
 const serviceFilters: { key: ServiceFilter; label: string; emoji: string; icon: any }[] = [
   { key: "todos", label: "Todos", emoji: "📍", icon: Filter },
   { key: "oficina", label: "Oficinas", emoji: "🔧", icon: Wrench },
   { key: "posto", label: "Postos", emoji: "⛽", icon: Fuel },
+  { key: "troca_oleo", label: "Troca de Óleo", emoji: "🛢️", icon: Droplets },
   { key: "autoeletrica", label: "Autoelétrica", emoji: "⚡", icon: Zap },
   { key: "autopecas", label: "Autopeças", emoji: "🔩", icon: Car },
-  { key: "troca_oleo", label: "Troca de Óleo", emoji: "🛢️", icon: Droplets },
+  { key: "borracharia", label: "Borracharia", emoji: "🛞", icon: Car },
 ];
 
 const markerColors: Record<string, string> = {
@@ -49,6 +50,7 @@ const markerColors: Record<string, string> = {
   autoeletrica: "#8b5cf6",
   autopecas: "#ef4444",
   troca_oleo: "#06b6d4",
+  borracharia: "#f97316",
   guincho: "#ec4899",
 };
 
@@ -103,17 +105,27 @@ const VehicleMap = ({ diagnosis, onBack, onEmergency }: VehicleMapProps) => {
     setLoading(true);
     setError(null);
     try {
-      const radius = diagnosis?.risk === "red" ? 3000 : 10000;
+      const radius = diagnosis?.risk === "red" ? 5000 : 15000;
       const query = `
-        [out:json][timeout:15];
+        [out:json][timeout:25];
         (
           node["shop"="car_repair"](around:${radius},${location.lat},${location.lon});
+          way["shop"="car_repair"](around:${radius},${location.lat},${location.lon});
           node["amenity"="fuel"](around:${radius},${location.lat},${location.lon});
+          way["amenity"="fuel"](around:${radius},${location.lat},${location.lon});
           node["shop"="car_parts"](around:${radius},${location.lat},${location.lon});
+          way["shop"="car_parts"](around:${radius},${location.lat},${location.lon});
           node["shop"="car"](around:${radius},${location.lat},${location.lon});
-          node["craft"="electrician"]["service"~"car|auto|vehicle"](around:${radius},${location.lat},${location.lon});
+          node["craft"="electrician"](around:${radius},${location.lat},${location.lon});
+          node["shop"="tyres"](around:${radius},${location.lat},${location.lon});
+          way["shop"="tyres"](around:${radius},${location.lat},${location.lon});
+          node["service:vehicle:oil_change"="yes"](around:${radius},${location.lat},${location.lon});
+          way["service:vehicle:oil_change"="yes"](around:${radius},${location.lat},${location.lon});
+          node["amenity"="car_wash"](around:${radius},${location.lat},${location.lon});
+          node["shop"="motorcycle_repair"](around:${radius},${location.lat},${location.lon});
+          node["amenity"="vehicle_inspection"](around:${radius},${location.lat},${location.lon});
         );
-        out body 40;
+        out center body 80;
       `;
 
       const controller = new AbortController();
@@ -144,10 +156,18 @@ const VehicleMap = ({ diagnosis, onBack, onEmergency }: VehicleMapProps) => {
 
       const mapped: NearbyPlace[] = (data.elements || []).map((el: any) => {
         const tags = el.tags || {};
+        // For way elements, use center coordinates
+        const lat = el.lat ?? el.center?.lat;
+        const lon = el.lon ?? el.center?.lon;
+        if (!lat || !lon) return null;
+
         const isFuel = tags.amenity === "fuel";
         const isCarParts = tags.shop === "car_parts";
         const isOilChange = tags["service:vehicle:oil_change"] === "yes";
         const isElectric = tags.craft === "electrician" || (tags.name && /eletri/i.test(tags.name));
+        const isTyres = tags.shop === "tyres" || (tags.name && /borracha|pneu/i.test(tags.name));
+        const isCarWash = tags.amenity === "car_wash";
+        const isInspection = tags.amenity === "vehicle_inspection";
 
         let type = "oficina";
         let emoji = "🔧";
@@ -157,6 +177,10 @@ const VehicleMap = ({ diagnosis, onBack, onEmergency }: VehicleMapProps) => {
           type = "posto";
           emoji = "⛽";
           name = tags.name || "Posto de Combustível";
+        } else if (isOilChange) {
+          type = "troca_oleo";
+          emoji = "🛢️";
+          name = tags.name || "Troca de Óleo";
         } else if (isElectric) {
           type = "autoeletrica";
           emoji = "⚡";
@@ -165,24 +189,38 @@ const VehicleMap = ({ diagnosis, onBack, onEmergency }: VehicleMapProps) => {
           type = "autopecas";
           emoji = "🔩";
           name = tags.name || "Autopeças";
-        } else if (isOilChange) {
-          type = "troca_oleo";
-          emoji = "🛢️";
-          name = tags.name || "Troca de Óleo";
+        } else if (isTyres) {
+          type = "borracharia";
+          emoji = "🛞";
+          name = tags.name || "Borracharia / Pneus";
+        } else if (isCarWash) {
+          type = "oficina";
+          emoji = "🚿";
+          name = tags.name || "Lava Jato";
+        } else if (isInspection) {
+          type = "oficina";
+          emoji = "📋";
+          name = tags.name || "Vistoria Veicular";
         }
 
-        const dist = getDistance(location.lat, location.lon, el.lat, el.lon);
+        // Detect troca de óleo by name
+        if (type === "oficina" && tags.name && /[oó]leo|lubrific/i.test(tags.name)) {
+          type = "troca_oleo";
+          emoji = "🛢️";
+        }
+
+        const dist = getDistance(location.lat, location.lon, lat, lon);
         return {
           id: el.id,
           name,
           type,
           emoji,
-          lat: el.lat,
-          lon: el.lon,
+          lat,
+          lon,
           distance: dist,
           phone: tags.phone || tags["contact:phone"] || undefined,
         };
-      });
+      }).filter(Boolean) as NearbyPlace[];
 
       mapped.sort((a, b) => (a.distance || 0) - (b.distance || 0));
       setPlaces(mapped);
