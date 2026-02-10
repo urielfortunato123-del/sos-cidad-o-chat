@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
+import { CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { DiagnosisResult } from "@/pages/EmergenciaVeicular";
+import { motion } from "framer-motion";
 
 interface VehicleDiagnosisProps {
   onComplete: (result: DiagnosisResult) => void;
@@ -15,6 +16,11 @@ interface ChecklistItem {
   emoji: string;
   answer: boolean | null;
 }
+
+const fadeUp = {
+  initial: { opacity: 0, y: 16 },
+  animate: { opacity: 1, y: 0 },
+};
 
 const VehicleDiagnosis = ({ onComplete, initialDescription }: VehicleDiagnosisProps) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -55,11 +61,9 @@ const VehicleDiagnosis = ({ onComplete, initialDescription }: VehicleDiagnosisPr
       });
 
       if (error) throw error;
-
       onComplete(data as DiagnosisResult);
     } catch (error) {
       console.error("Diagnosis error:", error);
-      // Fallback local diagnosis
       const hasOverheating = checklist.find(c => c.id === "overheating")?.answer;
       const hasBrake = checklist.find(c => c.id === "brake_light")?.answer;
       const hasOil = checklist.find(c => c.id === "oil_light")?.answer;
@@ -98,24 +102,37 @@ const VehicleDiagnosis = ({ onComplete, initialDescription }: VehicleDiagnosisPr
   };
 
   return (
-    <div className="animate-slide-up space-y-6">
-      <div className="text-center space-y-2">
+    <div className="space-y-6">
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="text-center space-y-2"
+      >
         <h2 className="text-xl font-bold text-foreground">Diagnóstico Rápido</h2>
         <p className="text-sm text-muted-foreground">
           Responda sim ou não para cada pergunta
         </p>
-      </div>
+      </motion.div>
 
       {initialDescription && (
-        <div className="bg-muted rounded-xl p-3 text-sm">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-muted rounded-xl p-3 text-sm"
+        >
           <span className="font-medium">Sua descrição:</span> "{initialDescription}"
-        </div>
+        </motion.div>
       )}
 
       <div className="space-y-3">
-        {checklist.map((item) => (
-          <div
+        {checklist.map((item, index) => (
+          <motion.div
             key={item.id}
+            variants={fadeUp}
+            initial="initial"
+            animate="animate"
+            transition={{ delay: index * 0.05, duration: 0.3 }}
             className="bg-card rounded-xl p-4 shadow-soft border border-border flex items-center justify-between gap-3"
           >
             <div className="flex items-center gap-3">
@@ -127,7 +144,7 @@ const VehicleDiagnosis = ({ onComplete, initialDescription }: VehicleDiagnosisPr
                 size="sm"
                 variant={item.answer === true ? "default" : "outline"}
                 onClick={() => setAnswer(item.id, true)}
-                className={`rounded-xl min-w-[52px] ${item.answer === true ? "bg-accent text-accent-foreground" : ""}`}
+                className={`rounded-xl min-w-[52px] transition-all duration-200 ${item.answer === true ? "bg-accent text-accent-foreground scale-105" : ""}`}
               >
                 Sim
               </Button>
@@ -135,32 +152,38 @@ const VehicleDiagnosis = ({ onComplete, initialDescription }: VehicleDiagnosisPr
                 size="sm"
                 variant={item.answer === false ? "default" : "outline"}
                 onClick={() => setAnswer(item.id, false)}
-                className={`rounded-xl min-w-[52px] ${item.answer === false ? "bg-success text-success-foreground" : ""}`}
+                className={`rounded-xl min-w-[52px] transition-all duration-200 ${item.answer === false ? "bg-success text-success-foreground scale-105" : ""}`}
               >
                 Não
               </Button>
             </div>
-          </div>
+          </motion.div>
         ))}
       </div>
 
-      <Button
-        onClick={handleAnalyze}
-        disabled={!allAnswered || isAnalyzing}
-        className="w-full h-14 text-lg font-semibold rounded-2xl bg-primary text-primary-foreground"
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: allAnswered ? 1 : 0.5 }}
+        transition={{ duration: 0.3 }}
       >
-        {isAnalyzing ? (
-          <>
-            <Loader2 className="w-5 h-5 animate-spin mr-2" />
-            Analisando...
-          </>
-        ) : (
-          <>
-            <CheckCircle2 className="w-5 h-5 mr-2" />
-            Analisar Problema
-          </>
-        )}
-      </Button>
+        <Button
+          onClick={handleAnalyze}
+          disabled={!allAnswered || isAnalyzing}
+          className="w-full h-14 text-lg font-semibold rounded-2xl bg-primary text-primary-foreground transition-transform active:scale-[0.98]"
+        >
+          {isAnalyzing ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin mr-2" />
+              Analisando...
+            </>
+          ) : (
+            <>
+              <CheckCircle2 className="w-5 h-5 mr-2" />
+              Analisar Problema
+            </>
+          )}
+        </Button>
+      </motion.div>
     </div>
   );
 };
