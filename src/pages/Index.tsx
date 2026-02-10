@@ -7,7 +7,7 @@ import ChatInterface from "@/components/ChatInterface";
 import ContactsModal from "@/components/ContactsModal";
 import Footer from "@/components/Footer";
 import EmergencyFloatingButton from "@/components/EmergencyFloatingButton";
-import AccessibilityBar from "@/components/AccessibilityBar";
+
 import BackgroundMusic from "@/components/BackgroundMusic";
 import FeedbackModal from "@/components/FeedbackModal";
 import { useNavigate } from "react-router-dom";
@@ -90,7 +90,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <AccessibilityBar />
+      
       <EmergencyFloatingButton />
       <BackgroundMusic />
       <FeedbackModal />
