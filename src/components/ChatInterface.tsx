@@ -40,12 +40,12 @@ const ChatInterface = ({ isOpen, onClose, initialCep, initialService, cityInfo, 
         ? `${cityInfo.city}, ${cityInfo.state}` 
         : `CEP ${initialCep}`;
       
-      let welcomeText = `Olá! 👋 Sou o assistente do SOS Cidadão. Identifiquei sua localização: ${locationText}.`;
+      let welcomeText = `Oi! 😊 Eu sou a Ana, do SOS Cidadão. Vi que você tá em ${locationText}.`;
       
       if (initialService) {
-        welcomeText += ` Vi que você clicou em ${initialService}. Como posso te ajudar com isso?`;
+        welcomeText += ` Percebi que você precisa de ajuda com ${initialService}, né? Me conta o que tá acontecendo que eu te ajudo!`;
       } else {
-        welcomeText += ` Me conta o que tá acontecendo - pode falar do seu jeito, tipo "tô sem luz" ou "tá faltando água aqui".`;
+        welcomeText += ` Me fala o que tá rolando — pode ser do jeitinho que quiser, tipo "tô sem luz" ou "preciso de ajuda". Tô aqui pra te ajudar! 💙`;
       }
 
       const welcomeMessage: Message = {
@@ -157,7 +157,7 @@ const ChatInterface = ({ isOpen, onClose, initialCep, initialService, cityInfo, 
             </div>
             <div>
               <h3 className="font-semibold text-primary-foreground">
-                {mode === "chat" ? "Assistente SOS" : "Pesquisa Google"}
+                {mode === "chat" ? "Ana — SOS Cidadão" : "Pesquisa Google"}
               </h3>
               <div className="flex items-center gap-1 text-xs text-primary-foreground/80">
                 <MapPin className="w-3 h-3" />
