@@ -11,18 +11,23 @@ const VehicleFloatingButton = () => {
 
   return (
     <AnimatePresence>
-      <motion.button
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0, opacity: 0 }}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-        onClick={() => navigate("/emergencia-veicular")}
-        className="fixed bottom-6 left-6 z-40 w-14 h-14 rounded-full bg-warning text-warning-foreground shadow-medium flex items-center justify-center"
-        aria-label="Emergência Veicular"
-      >
-        <Car className="w-6 h-6" />
-      </motion.button>
+      <div className="fixed bottom-6 left-6 z-40 flex flex-col items-center gap-1">
+        <motion.button
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0, opacity: 0 }}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => navigate("/emergencia-veicular")}
+          className="w-14 h-14 rounded-full bg-warning text-warning-foreground shadow-medium flex items-center justify-center"
+          aria-label="Emergência Veicular"
+        >
+          <Car className="w-6 h-6" />
+        </motion.button>
+        <span className="text-xs font-semibold text-warning text-center">
+          VEICULAR
+        </span>
+      </div>
     </AnimatePresence>
   );
 };
