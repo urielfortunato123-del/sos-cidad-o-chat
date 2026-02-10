@@ -5,36 +5,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+const HF_API_URL = 'https://router.huggingface.co/v1/chat/completions';
+const HF_MODEL = 'meta-llama/Llama-3.3-70B-Instruct';
 
-  try {
-    const { message, cep, conversationHistory, cityContacts, stream: enableStream } = await req.json();
-
-    if (!message) {
-      return new Response(
-        JSON.stringify({ error: 'Mensagem é obrigatória' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const OPENROUTER_API_KEY = Deno.env.get('OPENROUTER_API_KEY');
-    if (!OPENROUTER_API_KEY) {
-      console.error('OPENROUTER_API_KEY not configured');
-      return new Response(
-        JSON.stringify({ error: 'API key do OpenRouter não configurada' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Log received data
-    console.log('CEP recebido:', cep);
-    console.log('CityContacts recebido:', JSON.stringify(cityContacts));
-
-    // Build dynamic system prompt with actual contact data
-    let systemPrompt = `Você é o assistente do SOS Cidadão. Seu trabalho é ajudar cidadãos a encontrar números de telefone de serviços públicos.
+function buildSystemPrompt(cityContacts: any): string {
+  let systemPrompt = `Você é o assistente do SOS Cidadão. Seu trabalho é ajudar cidadãos a encontrar números de telefone de serviços públicos.
 
 ## REGRAS IMPORTANTES
 1. Quando o usuário pedir ajuda com água, luz, gás, prefeitura ou emergência, responda com o número IMEDIATAMENTE
@@ -49,44 +24,43 @@ serve(async (req) => {
 - ☎️ CVV: 188
 `;
 
-    // Add city-specific contacts
-    if (cityContacts) {
-      systemPrompt += `\n## CONTATOS DA REGIÃO: ${cityContacts.city}/${cityContacts.state}\n`;
-      
-      if (cityContacts.agua) {
-        systemPrompt += `\n### 💧 ÁGUA - ${cityContacts.agua.company}\n`;
-        cityContacts.agua.phones.forEach((p: { label: string; number: string }) => {
-          if (!p.number.includes('@')) {
-            systemPrompt += `📞 ${p.label}: ${p.number}\n`;
-          }
-        });
-      }
-      
-      if (cityContacts.energia) {
-        systemPrompt += `\n### ⚡ ENERGIA - ${cityContacts.energia.company}\n`;
-        cityContacts.energia.phones.forEach((p: { label: string; number: string }) => {
+  if (cityContacts) {
+    systemPrompt += `\n## CONTATOS DA REGIÃO: ${cityContacts.city}/${cityContacts.state}\n`;
+    
+    if (cityContacts.agua) {
+      systemPrompt += `\n### 💧 ÁGUA - ${cityContacts.agua.company}\n`;
+      cityContacts.agua.phones.forEach((p: { label: string; number: string }) => {
+        if (!p.number.includes('@')) {
           systemPrompt += `📞 ${p.label}: ${p.number}\n`;
-        });
-      }
-      
-      if (cityContacts.gas) {
-        systemPrompt += `\n### 🔥 GÁS - ${cityContacts.gas.company}\n`;
-        cityContacts.gas.phones.forEach((p: { label: string; number: string }) => {
-          systemPrompt += `📞 ${p.label}: ${p.number}\n`;
-        });
-      }
-      
-      if (cityContacts.prefeitura) {
-        systemPrompt += `\n### 🏛️ PREFEITURA - ${cityContacts.prefeitura.name}\n`;
-        cityContacts.prefeitura.phones.forEach((p: { label: string; number: string }) => {
-          systemPrompt += `📞 ${p.label}: ${p.number}\n`;
-        });
-      }
-    } else {
-      systemPrompt += `\n## ATENÇÃO: Não tenho os contatos específicos desta cidade. Oriente o usuário a verificar na conta de água/luz ou ligar 156.\n`;
+        }
+      });
     }
+    
+    if (cityContacts.energia) {
+      systemPrompt += `\n### ⚡ ENERGIA - ${cityContacts.energia.company}\n`;
+      cityContacts.energia.phones.forEach((p: { label: string; number: string }) => {
+        systemPrompt += `📞 ${p.label}: ${p.number}\n`;
+      });
+    }
+    
+    if (cityContacts.gas) {
+      systemPrompt += `\n### 🔥 GÁS - ${cityContacts.gas.company}\n`;
+      cityContacts.gas.phones.forEach((p: { label: string; number: string }) => {
+        systemPrompt += `📞 ${p.label}: ${p.number}\n`;
+      });
+    }
+    
+    if (cityContacts.prefeitura) {
+      systemPrompt += `\n### 🏛️ PREFEITURA - ${cityContacts.prefeitura.name}\n`;
+      cityContacts.prefeitura.phones.forEach((p: { label: string; number: string }) => {
+        systemPrompt += `📞 ${p.label}: ${p.number}\n`;
+      });
+    }
+  } else {
+    systemPrompt += `\n## ATENÇÃO: Não tenho os contatos específicos desta cidade. Oriente o usuário a verificar na conta de água/luz ou ligar 156.\n`;
+  }
 
-    systemPrompt += `
+  systemPrompt += `
 ## EXEMPLOS DE RESPOSTA
 
 Se usuário disser "tô sem água", "falta água", "sem água":
@@ -113,14 +87,42 @@ Se usuário apenas cumprimentar (oi, olá) ou enviar só um CEP:
 - NÃO invente números - use APENAS os dados acima
 - NÃO dê respostas longas demais`;
 
-    console.log('System prompt gerado com contatos');
+  return systemPrompt;
+}
 
-    // Build messages array
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { message, cep, conversationHistory, cityContacts, stream: enableStream } = await req.json();
+
+    if (!message) {
+      return new Response(
+        JSON.stringify({ error: 'Mensagem é obrigatória' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const HF_TOKEN = Deno.env.get('HUGGINGFACE_API_TOKEN');
+    if (!HF_TOKEN) {
+      console.error('HUGGINGFACE_API_TOKEN not configured');
+      return new Response(
+        JSON.stringify({ error: 'Token da Hugging Face não configurado' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('CEP recebido:', cep);
+    console.log('CityContacts recebido:', JSON.stringify(cityContacts));
+
+    const systemPrompt = buildSystemPrompt(cityContacts);
+
     const messages: Array<{ role: string; content: string }> = [
       { role: 'system', content: systemPrompt },
     ];
 
-    // Add conversation history if provided (limit to last 6 messages)
     if (conversationHistory && Array.isArray(conversationHistory)) {
       for (const msg of conversationHistory.slice(-6)) {
         messages.push({
@@ -130,21 +132,18 @@ Se usuário apenas cumprimentar (oi, olá) ou enviar só um CEP:
       }
     }
 
-    // Add current message
     messages.push({ role: 'user', content: message });
 
-    console.log('Sending request to OpenRouter...');
+    console.log('Sending request to Hugging Face...');
 
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const response = await fetch(HF_API_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Authorization': `Bearer ${HF_TOKEN}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://soscidadao.com.br',
-        'X-Title': 'SOS Cidadão',
       },
       body: JSON.stringify({
-        model: 'openai/gpt-4o-mini',
+        model: HF_MODEL,
         messages,
         temperature: 0.3,
         max_tokens: 200,
@@ -166,7 +165,7 @@ Se usuário apenas cumprimentar (oi, olá) ou enviar só um CEP:
         );
       }
       const errorText = await response.text();
-      console.error('OpenRouter error:', response.status, errorText);
+      console.error('Hugging Face error:', response.status, errorText);
       return new Response(
         JSON.stringify({ error: 'Erro ao processar mensagem' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -189,7 +188,7 @@ Se usuário apenas cumprimentar (oi, olá) ou enviar só um CEP:
     const data = await response.json();
     const aiResponse = data.choices?.[0]?.message?.content || 'Desculpe, não consegui processar sua mensagem.';
 
-    console.log('AI response received successfully');
+    console.log('HF response received successfully');
 
     return new Response(
       JSON.stringify({ response: aiResponse }),
