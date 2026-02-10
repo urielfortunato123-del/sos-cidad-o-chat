@@ -1,6 +1,7 @@
 import { ClipboardList, Mic, MapPin, Car } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AudioRecorder from "./AudioRecorder";
+import DashboardWarnings from "./DashboardWarnings";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -93,6 +94,8 @@ const VehicleEntry = ({ onChecklist, onDescribe, onMap }: VehicleEntryProps) => 
           </Button>
         </motion.div>
       </div>
+
+      <DashboardWarnings />
     </motion.div>
   );
 };
