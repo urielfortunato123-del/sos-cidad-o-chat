@@ -99,93 +99,104 @@ const VehicleMap = ({ diagnosis, onBack, onEmergency }: VehicleMapProps) => {
     );
   }, []);
 
-  useEffect(() => {
-    if (!userLocation) return;
+  const fetchNearbyPlaces = async (location: { lat: number; lon: number }) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const radius = diagnosis?.risk === "red" ? 3000 : 10000;
+      const query = `
+        [out:json][timeout:15];
+        (
+          node["shop"="car_repair"](around:${radius},${location.lat},${location.lon});
+          node["amenity"="fuel"](around:${radius},${location.lat},${location.lon});
+          node["shop"="car_parts"](around:${radius},${location.lat},${location.lon});
+          node["shop"="car"](around:${radius},${location.lat},${location.lon});
+          node["craft"="electrician"]["service"~"car|auto|vehicle"](around:${radius},${location.lat},${location.lon});
+        );
+        out body 40;
+      `;
 
-    const fetchNearbyPlaces = async () => {
-      setLoading(true);
-      setError(null);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+      // Try primary Overpass endpoint, fallback to alternative
+      let response: Response;
       try {
-        const radius = diagnosis?.risk === "red" ? 3000 : 10000;
-        const query = `
-          [out:json][timeout:15];
-          (
-            node["shop"="car_repair"](around:${radius},${userLocation.lat},${userLocation.lon});
-            node["amenity"="fuel"](around:${radius},${userLocation.lat},${userLocation.lon});
-            node["shop"="car_parts"](around:${radius},${userLocation.lat},${userLocation.lon});
-            node["shop"="car"](around:${radius},${userLocation.lat},${userLocation.lon});
-            node["craft"="electrician"]["service"~"car|auto|vehicle"](around:${radius},${userLocation.lat},${userLocation.lon});
-          );
-          out body 40;
-        `;
-
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 12000);
-
-        const response = await fetch("https://overpass-api.de/api/interpreter", {
+        response = await fetch("https://overpass-api.de/api/interpreter", {
           method: "POST",
           body: `data=${encodeURIComponent(query)}`,
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           signal: controller.signal,
         });
-        clearTimeout(timeoutId);
-
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-
-        const mapped: NearbyPlace[] = (data.elements || []).map((el: any) => {
-          const tags = el.tags || {};
-          const isFuel = tags.amenity === "fuel";
-          const isCarParts = tags.shop === "car_parts";
-          const isOilChange = tags["service:vehicle:oil_change"] === "yes";
-          const isElectric = tags.craft === "electrician" || (tags.name && /eletri/i.test(tags.name));
-
-          let type = "oficina";
-          let emoji = "🔧";
-          let name = tags.name || "Oficina Mecânica";
-
-          if (isFuel) {
-            type = "posto";
-            emoji = "⛽";
-            name = tags.name || "Posto de Combustível";
-          } else if (isElectric) {
-            type = "autoeletrica";
-            emoji = "⚡";
-            name = tags.name || "Autoelétrica";
-          } else if (isCarParts) {
-            type = "autopecas";
-            emoji = "🔩";
-            name = tags.name || "Autopeças";
-          } else if (isOilChange) {
-            type = "troca_oleo";
-            emoji = "🛢️";
-            name = tags.name || "Troca de Óleo";
-          }
-
-          const dist = getDistance(userLocation.lat, userLocation.lon, el.lat, el.lon);
-          return {
-            id: el.id,
-            name,
-            type,
-            emoji,
-            lat: el.lat,
-            lon: el.lon,
-            distance: dist,
-            phone: tags.phone || tags["contact:phone"] || undefined,
-          };
+      } catch {
+        // Fallback to alternative Overpass server
+        response = await fetch("https://overpass.kumi.systems/api/interpreter", {
+          method: "POST",
+          body: `data=${encodeURIComponent(query)}`,
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          signal: controller.signal,
         });
-
-        mapped.sort((a, b) => (a.distance || 0) - (b.distance || 0));
-        setPlaces(mapped);
-      } catch (err) {
-        console.error("Overpass API error:", err);
-        setError("Não foi possível buscar serviços próximos.");
-      } finally {
-        setLoading(false);
       }
-    };
+      clearTimeout(timeoutId);
 
-    fetchNearbyPlaces();
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+
+      const mapped: NearbyPlace[] = (data.elements || []).map((el: any) => {
+        const tags = el.tags || {};
+        const isFuel = tags.amenity === "fuel";
+        const isCarParts = tags.shop === "car_parts";
+        const isOilChange = tags["service:vehicle:oil_change"] === "yes";
+        const isElectric = tags.craft === "electrician" || (tags.name && /eletri/i.test(tags.name));
+
+        let type = "oficina";
+        let emoji = "🔧";
+        let name = tags.name || "Oficina Mecânica";
+
+        if (isFuel) {
+          type = "posto";
+          emoji = "⛽";
+          name = tags.name || "Posto de Combustível";
+        } else if (isElectric) {
+          type = "autoeletrica";
+          emoji = "⚡";
+          name = tags.name || "Autoelétrica";
+        } else if (isCarParts) {
+          type = "autopecas";
+          emoji = "🔩";
+          name = tags.name || "Autopeças";
+        } else if (isOilChange) {
+          type = "troca_oleo";
+          emoji = "🛢️";
+          name = tags.name || "Troca de Óleo";
+        }
+
+        const dist = getDistance(location.lat, location.lon, el.lat, el.lon);
+        return {
+          id: el.id,
+          name,
+          type,
+          emoji,
+          lat: el.lat,
+          lon: el.lon,
+          distance: dist,
+          phone: tags.phone || tags["contact:phone"] || undefined,
+        };
+      });
+
+      mapped.sort((a, b) => (a.distance || 0) - (b.distance || 0));
+      setPlaces(mapped);
+    } catch (err) {
+      console.error("Overpass API error:", err);
+      setError("Não foi possível buscar serviços próximos. O mapa está disponível abaixo.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!userLocation) return;
+    fetchNearbyPlaces(userLocation);
   }, [userLocation, diagnosis, retryCount]);
 
   const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -245,18 +256,12 @@ const VehicleMap = ({ diagnosis, onBack, onEmergency }: VehicleMapProps) => {
     window.open(url, "_blank");
   };
 
-  if (error) {
+  if (error && !userLocation) {
     return (
       <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="space-y-5 text-center py-8">
         <AlertTriangle className="w-12 h-12 text-warning mx-auto" />
         <p className="text-foreground font-medium">{error}</p>
         <div className="space-y-3">
-          {!locationError && (
-            <Button onClick={() => setRetryCount(c => c + 1)} className="w-full h-12 rounded-2xl bg-primary text-primary-foreground">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Tentar novamente
-            </Button>
-          )}
           <Button onClick={openGoogleMapsSearch} className="w-full h-12 rounded-2xl bg-success text-success-foreground">
             <ExternalLink className="w-4 h-4 mr-2" />
             Abrir no Google Maps
@@ -272,6 +277,18 @@ const VehicleMap = ({ diagnosis, onBack, onEmergency }: VehicleMapProps) => {
       <motion.h2 initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xl font-bold text-foreground text-center">
         Serviços Próximos
       </motion.h2>
+
+      {/* Error banner with retry - still shows map below */}
+      {error && userLocation && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-warning/10 border border-warning/30 rounded-xl p-3 flex items-center gap-3">
+          <AlertTriangle className="w-5 h-5 text-warning shrink-0" />
+          <p className="text-sm text-foreground flex-1">Erro ao buscar serviços. O mapa está disponível.</p>
+          <Button size="sm" variant="outline" onClick={() => setRetryCount(c => c + 1)} className="shrink-0 rounded-xl">
+            <RefreshCw className="w-3 h-3 mr-1" />
+            Tentar
+          </Button>
+        </motion.div>
+      )}
 
       {/* Filter chips */}
       <motion.div
