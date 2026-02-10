@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { MapPin, Navigation, Phone, Loader2, AlertTriangle } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { MapPin, Navigation, Phone, Loader2, AlertTriangle, RefreshCw, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DiagnosisResult } from "@/pages/EmergenciaVeicular";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
@@ -54,16 +54,20 @@ const VehicleMap = ({ diagnosis, onBack, onEmergency }: VehicleMapProps) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [retryCount, setRetryCount] = useState(0);
+  const [locationError, setLocationError] = useState(false);
+
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setUserLocation({ lat: pos.coords.latitude, lon: pos.coords.longitude });
       },
       () => {
+        setLocationError(true);
         setError("Não foi possível obter sua localização. Ative o GPS.");
         setLoading(false);
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 15000 }
     );
   }, []);
 
@@ -72,10 +76,11 @@ const VehicleMap = ({ diagnosis, onBack, onEmergency }: VehicleMapProps) => {
 
     const fetchNearbyPlaces = async () => {
       setLoading(true);
+      setError(null);
       try {
         const radius = diagnosis?.risk === "red" ? 3000 : 10000;
         const query = `
-          [out:json][timeout:10];
+          [out:json][timeout:15];
           (
             node["shop"="car_repair"](around:${radius},${userLocation.lat},${userLocation.lon});
             node["amenity"="fuel"](around:${radius},${userLocation.lat},${userLocation.lon});
@@ -84,11 +89,18 @@ const VehicleMap = ({ diagnosis, onBack, onEmergency }: VehicleMapProps) => {
           out body 20;
         `;
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 12000);
+
         const response = await fetch("https://overpass-api.de/api/interpreter", {
           method: "POST",
           body: `data=${encodeURIComponent(query)}`,
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          signal: controller.signal,
         });
+        clearTimeout(timeoutId);
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
         const data = await response.json();
 
@@ -111,14 +123,14 @@ const VehicleMap = ({ diagnosis, onBack, onEmergency }: VehicleMapProps) => {
         setPlaces(mapped);
       } catch (err) {
         console.error("Overpass API error:", err);
-        setError("Não foi possível buscar serviços próximos. Verifique sua conexão.");
+        setError("Não foi possível buscar serviços próximos.");
       } finally {
         setLoading(false);
       }
     };
 
     fetchNearbyPlaces();
-  }, [userLocation, diagnosis]);
+  }, [userLocation, diagnosis, retryCount]);
 
   const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
     const R = 6371e3;
@@ -156,18 +168,49 @@ const VehicleMap = ({ diagnosis, onBack, onEmergency }: VehicleMapProps) => {
     );
   }
 
+  const openGoogleMapsSearch = () => {
+    const query = locationError
+      ? "oficina mecânica OR posto de combustível"
+      : `oficina mecânica OR posto de combustível`;
+    const url = userLocation
+      ? `https://www.google.com/maps/search/oficina+mecanica+posto+combustivel/@${userLocation.lat},${userLocation.lon},14z`
+      : `https://www.google.com/maps/search/oficina+mecanica+posto+combustivel`;
+    window.open(url, "_blank");
+  };
+
   if (error) {
     return (
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="space-y-4 text-center py-10"
+        className="space-y-5 text-center py-8"
       >
         <AlertTriangle className="w-12 h-12 text-warning mx-auto" />
         <p className="text-foreground font-medium">{error}</p>
-        <Button onClick={onBack} variant="outline" className="rounded-xl">
-          Voltar
-        </Button>
+
+        <div className="space-y-3">
+          {!locationError && (
+            <Button
+              onClick={() => setRetryCount(c => c + 1)}
+              className="w-full h-12 rounded-2xl bg-primary text-primary-foreground"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Tentar novamente
+            </Button>
+          )}
+
+          <Button
+            onClick={openGoogleMapsSearch}
+            className="w-full h-12 rounded-2xl bg-success text-success-foreground"
+          >
+            <ExternalLink className="w-4 h-4 mr-2" />
+            Abrir no Google Maps
+          </Button>
+
+          <Button onClick={onBack} variant="outline" className="w-full h-12 rounded-2xl">
+            Voltar
+          </Button>
+        </div>
       </motion.div>
     );
   }
