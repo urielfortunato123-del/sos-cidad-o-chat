@@ -18,7 +18,7 @@ const VehicleFloatingButton = () => {
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         onClick={() => navigate("/emergencia-veicular")}
-        className="fixed bottom-24 left-4 z-40 w-14 h-14 rounded-full bg-warning text-warning-foreground shadow-medium flex items-center justify-center"
+        className="fixed bottom-6 left-6 z-40 w-14 h-14 rounded-full bg-warning text-warning-foreground shadow-medium flex items-center justify-center"
         aria-label="Emergência Veicular"
       >
         <Car className="w-6 h-6" />

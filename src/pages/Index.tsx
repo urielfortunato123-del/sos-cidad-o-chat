@@ -99,17 +99,16 @@ const Index = () => {
         <HeroSection onStartChat={handleStartChat} />
 
         {/* Vehicle Emergency CTA */}
-        <section className="py-8 bg-background">
+        <section className="py-4 bg-background">
           <div className="container mx-auto px-4 max-w-5xl">
             <Button
               onClick={() => navigate("/emergencia-veicular")}
-              className="w-full h-20 text-lg font-semibold rounded-2xl bg-warning text-warning-foreground hover:bg-warning/90 shadow-medium flex items-center gap-4 justify-center"
+              variant="outline"
+              className="w-full h-12 rounded-xl border-warning/40 bg-warning/10 text-foreground hover:bg-warning/20 shadow-soft flex items-center gap-3 justify-center text-sm font-medium"
             >
-              <Car className="w-8 h-8" />
-              <div className="text-left">
-                <div className="text-lg">🚗 Emergência Veicular</div>
-                <div className="text-sm font-normal opacity-80">Problema no carro? Diagnóstico e mapa de serviços</div>
-              </div>
+              <Car className="w-5 h-5 text-warning" />
+              <span>🚗 Emergência Veicular</span>
+              <span className="text-xs text-muted-foreground hidden sm:inline">— Diagnóstico e mapa de serviços</span>
             </Button>
           </div>
         </section>
