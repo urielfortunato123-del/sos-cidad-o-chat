@@ -2,3 +2,9 @@ project_id = "mtwrruqxllgyegpgluhw"
 
 [functions.chat-ai]
 verify_jwt = false
+
+[functions.vehicle-diagnosis]
+verify_jwt = false
+
+[functions.vehicle-audio-transcribe]
+verify_jwt = false

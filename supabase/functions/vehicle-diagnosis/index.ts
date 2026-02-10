@@ -5,13 +5,16 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const HF_API_URL = "https://router.huggingface.co/v1/chat/completions";
+const HF_MODEL = "meta-llama/Llama-3.3-70B-Instruct";
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const { symptoms, description, checklist } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    const HF_TOKEN = Deno.env.get("HUGGINGFACE_API_TOKEN");
+    if (!HF_TOKEN) throw new Error("HUGGINGFACE_API_TOKEN not configured");
 
     const checklistText = (checklist || [])
       .map((c: { question: string; answer: boolean }) => `${c.question} ${c.answer ? "SIM" : "NÃO"}`)
@@ -24,7 +27,7 @@ DESCRIÇÃO DO USUÁRIO: ${description || "nenhuma"}
 CHECKLIST:
 ${checklistText}
 
-Retorne APENAS um JSON válido (sem markdown) com esta estrutura:
+Retorne APENAS um JSON válido (sem markdown, sem crases, sem texto extra) com esta estrutura:
 {
   "risk": "green" | "yellow" | "red",
   "canContinue": "sim" | "curta_distancia" | "nao",
@@ -40,25 +43,27 @@ REGRAS:
 - Se apenas barulho estranho → yellow + curta_distancia
 - Se nenhum sintoma grave → green + sim
 - recommendation deve ser linguagem simples, como se falasse com alguém sem conhecimento mecânico
-- serviceTypes deve listar apenas os tipos relevantes ao problema`;
+- serviceTypes deve listar apenas os tipos relevantes ao problema
+- RESPONDA APENAS O JSON, nada mais`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch(HF_API_URL, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${HF_TOKEN}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: HF_MODEL,
         messages: [{ role: "user", content: prompt }],
         temperature: 0.1,
+        max_tokens: 300,
       }),
     });
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error("AI error:", response.status, errText);
-      throw new Error(`AI gateway error: ${response.status}`);
+      console.error("HF error:", response.status, errText);
+      throw new Error(`Hugging Face API error: ${response.status}`);
     }
 
     const data = await response.json();
