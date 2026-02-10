@@ -449,6 +449,25 @@ const VehicleMap = ({ diagnosis, onBack, onEmergency }: VehicleMapProps) => {
 
       {/* Actions */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="space-y-3 pt-2">
+        {/* Share / open my location */}
+        {userLocation && (
+          <Button
+            onClick={() => {
+              const url = `https://www.google.com/maps?q=${userLocation.lat},${userLocation.lon}`;
+              if (navigator.share) {
+                navigator.share({ title: "Minha localização", url }).catch(() => window.open(url, "_blank"));
+              } else {
+                window.open(url, "_blank");
+              }
+            }}
+            variant="outline"
+            className="w-full h-12 rounded-2xl border-primary/30 text-primary"
+          >
+            <ExternalLink className="w-5 h-5 mr-2" />
+            Compartilhar minha localização
+          </Button>
+        )}
+
         {filteredPlaces.length > 0 && (
           <Button
             onClick={() => {
