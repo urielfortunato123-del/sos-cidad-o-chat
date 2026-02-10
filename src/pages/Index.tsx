@@ -10,12 +10,16 @@ import EmergencyFloatingButton from "@/components/EmergencyFloatingButton";
 import AccessibilityBar from "@/components/AccessibilityBar";
 import BackgroundMusic from "@/components/BackgroundMusic";
 import FeedbackModal from "@/components/FeedbackModal";
+import { useNavigate } from "react-router-dom";
+import { Car } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { getContactsByCep, CityContacts, emergencyNumbers } from "@/utils/cityContacts";
 import { useToast } from "@/hooks/use-toast";
 import { useAccessLog } from "@/hooks/useAccessLog";
 
 const Index = () => {
   useAccessLog('/');
+  const navigate = useNavigate();
   const [chatOpen, setChatOpen] = useState(false);
   const [userCep, setUserCep] = useState("");
   const [userCityInfo, setUserCityInfo] = useState<{ city: string; state: string } | undefined>();
@@ -93,6 +97,23 @@ const Index = () => {
       
       <main className="pt-16">
         <HeroSection onStartChat={handleStartChat} />
+
+        {/* Vehicle Emergency CTA */}
+        <section className="py-8 bg-background">
+          <div className="container mx-auto px-4 max-w-5xl">
+            <Button
+              onClick={() => navigate("/emergencia-veicular")}
+              className="w-full h-20 text-lg font-semibold rounded-2xl bg-warning text-warning-foreground hover:bg-warning/90 shadow-medium flex items-center gap-4 justify-center"
+            >
+              <Car className="w-8 h-8" />
+              <div className="text-left">
+                <div className="text-lg">🚗 Emergência Veicular</div>
+                <div className="text-sm font-normal opacity-80">Problema no carro? Diagnóstico e mapa de serviços</div>
+              </div>
+            </Button>
+          </div>
+        </section>
+
         <QuickDialSection />
         <ServicesSection 
           onServiceClick={handleServiceClick} 
