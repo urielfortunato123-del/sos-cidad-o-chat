@@ -8,6 +8,7 @@ import Install from "./pages/Install";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 import EmergenciaVeicular from "./pages/EmergenciaVeicular";
+import VehicleFloatingButton from "./components/VehicleFloatingButton";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -18,13 +19,13 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <VehicleFloatingButton />
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/install" element={<Install />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/emergencia-veicular" element={<EmergenciaVeicular />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
