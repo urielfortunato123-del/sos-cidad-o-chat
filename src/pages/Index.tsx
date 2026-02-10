@@ -95,7 +95,7 @@ const Index = () => {
       <BackgroundMusic />
       <FeedbackModal />
       
-      <main className="pt-16">
+      <main className="pt-[calc(4rem+2.5rem)]">
         <HeroSection onStartChat={handleStartChat} />
 
         {/* Vehicle Emergency CTA */}
