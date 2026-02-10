@@ -47,12 +47,12 @@ const EmergencyFloatingButton = () => {
       <Button
         onClick={() => setIsOpen(!isOpen)}
         variant={isOpen ? "secondary" : "emergency"}
-        className={`w-20 h-20 rounded-full shadow-emergency ${!isOpen ? 'animate-pulse-emergency' : ''}`}
+        className={`w-14 h-14 rounded-full shadow-emergency ${!isOpen ? 'animate-pulse-emergency' : ''}`}
       >
         {isOpen ? (
-          <X className="w-8 h-8" />
+          <X className="w-6 h-6" />
         ) : (
-          <Phone className="w-8 h-8" />
+          <Phone className="w-6 h-6" />
         )}
       </Button>
       
