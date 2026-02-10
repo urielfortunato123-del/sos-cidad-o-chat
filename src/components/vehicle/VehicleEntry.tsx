@@ -95,7 +95,7 @@ const VehicleEntry = ({ onChecklist, onDescribe, onMap }: VehicleEntryProps) => 
         </motion.div>
       </div>
 
-      <DashboardWarnings />
+      <DashboardWarnings onStartDiagnosis={(symptom) => onDescribe(symptom)} />
     </motion.div>
   );
 };

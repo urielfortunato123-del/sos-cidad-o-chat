@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, ChevronUp, X } from "lucide-react";
+import { ChevronDown, ChevronUp, X, Stethoscope } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface WarningLight {
   icon: string;
@@ -187,7 +188,11 @@ const categories: WarningCategory[] = [
   },
 ];
 
-const DashboardWarnings = () => {
+interface DashboardWarningsProps {
+  onStartDiagnosis?: (symptom: string) => void;
+}
+
+const DashboardWarnings = ({ onStartDiagnosis }: DashboardWarningsProps) => {
   const [expanded, setExpanded] = useState(false);
   const [selectedLight, setSelectedLight] = useState<{ light: WarningLight; cat: WarningCategory } | null>(null);
 
@@ -313,6 +318,23 @@ const DashboardWarnings = () => {
                   </p>
                 </div>
               </div>
+
+              {/* Diagnóstico button for yellow/red */}
+              {selectedLight.cat.color !== "green" && onStartDiagnosis && (
+                <div className="px-4 pb-4">
+                  <Button
+                    onClick={() => {
+                      const symptom = `${selectedLight.light.label}: ${selectedLight.light.description}`;
+                      setSelectedLight(null);
+                      onStartDiagnosis(symptom);
+                    }}
+                    className="w-full h-12 rounded-2xl font-semibold text-base gap-2"
+                  >
+                    <Stethoscope className="w-5 h-5" />
+                    Iniciar Diagnóstico
+                  </Button>
+                </div>
+              )}
             </motion.div>
           </motion.div>
         )}
