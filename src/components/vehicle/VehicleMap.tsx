@@ -5,6 +5,7 @@ import { DiagnosisResult } from "@/pages/EmergenciaVeicular";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { motion } from "framer-motion";
 
 // Fix leaflet default marker icons
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -29,14 +30,6 @@ interface NearbyPlace {
   lon: number;
   distance?: number;
 }
-
-const serviceTypeMap: Record<string, { query: string; emoji: string; label: string }> = {
-  oficina: { query: "car_repair", emoji: "🔧", label: "Oficina" },
-  autoeletrica: { query: "car_repair", emoji: "⚡", label: "Autoelétrica" },
-  guincho: { query: "car_repair", emoji: "🚗", label: "Guincho" },
-  troca_oleo: { query: "car_repair", emoji: "🛢️", label: "Troca de Óleo" },
-  posto: { query: "fuel", emoji: "⛽", label: "Posto" },
-};
 
 function RecenterMap({ lat, lon }: { lat: number; lon: number }) {
   const map = useMap();
@@ -144,31 +137,59 @@ const VehicleMap = ({ diagnosis, onBack, onEmergency }: VehicleMapProps) => {
 
   if (loading) {
     return (
-      <div className="animate-slide-up flex flex-col items-center justify-center py-20 gap-4">
-        <Loader2 className="w-10 h-10 animate-spin text-primary" />
-        <p className="text-muted-foreground">Buscando serviços próximos...</p>
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+        >
+          <Loader2 className="w-10 h-10 text-primary" />
+        </motion.div>
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="text-muted-foreground"
+        >
+          Buscando serviços próximos...
+        </motion.p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="animate-slide-up space-y-4 text-center py-10">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="space-y-4 text-center py-10"
+      >
         <AlertTriangle className="w-12 h-12 text-warning mx-auto" />
         <p className="text-foreground font-medium">{error}</p>
         <Button onClick={onBack} variant="outline" className="rounded-xl">
           Voltar
         </Button>
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <div className="animate-slide-up space-y-4">
-      <h2 className="text-xl font-bold text-foreground text-center">Serviços Próximos</h2>
+    <div className="space-y-4">
+      <motion.h2
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="text-xl font-bold text-foreground text-center"
+      >
+        Serviços Próximos
+      </motion.h2>
 
       {userLocation && (
-        <div className="rounded-2xl overflow-hidden border border-border shadow-soft" style={{ height: 300 }}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="rounded-2xl overflow-hidden border border-border shadow-soft"
+          style={{ height: 300 }}
+        >
           <MapContainer
             center={[userLocation.lat, userLocation.lon]}
             zoom={14}
@@ -202,7 +223,7 @@ const VehicleMap = ({ diagnosis, onBack, onEmergency }: VehicleMapProps) => {
               </Marker>
             ))}
           </MapContainer>
-        </div>
+        </motion.div>
       )}
 
       {/* Places list */}
@@ -212,9 +233,12 @@ const VehicleMap = ({ diagnosis, onBack, onEmergency }: VehicleMapProps) => {
             Nenhum serviço encontrado próximo. Tente ampliar a busca.
           </p>
         ) : (
-          places.slice(0, 8).map((place) => (
-            <div
+          places.slice(0, 8).map((place, index) => (
+            <motion.div
               key={place.id}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 + index * 0.06, duration: 0.3 }}
               className="bg-card rounded-xl p-4 shadow-soft border border-border flex items-center justify-between gap-3"
             >
               <div className="flex items-center gap-3 min-w-0">
@@ -229,25 +253,30 @@ const VehicleMap = ({ diagnosis, onBack, onEmergency }: VehicleMapProps) => {
               <Button
                 size="sm"
                 onClick={() => openNavigation(place.lat, place.lon, place.name)}
-                className="rounded-xl bg-success text-success-foreground shrink-0"
+                className="rounded-xl bg-success text-success-foreground shrink-0 transition-transform active:scale-95"
               >
                 <Navigation className="w-4 h-4 mr-1" />
                 Ir
               </Button>
-            </div>
+            </motion.div>
           ))
         )}
       </div>
 
       {/* Actions */}
-      <div className="space-y-3 pt-2">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className="space-y-3 pt-2"
+      >
         {places.length > 0 && (
           <Button
             onClick={() => {
               const nearest = places[0];
               if (nearest) openNavigation(nearest.lat, nearest.lon, nearest.name);
             }}
-            className="w-full h-14 text-lg font-semibold rounded-2xl bg-success text-success-foreground"
+            className="w-full h-14 text-lg font-semibold rounded-2xl bg-success text-success-foreground transition-transform active:scale-[0.98]"
           >
             <Navigation className="w-5 h-5 mr-2" />
             Me leve ao local mais seguro agora
@@ -256,7 +285,7 @@ const VehicleMap = ({ diagnosis, onBack, onEmergency }: VehicleMapProps) => {
 
         <Button
           onClick={onEmergency}
-          className="w-full h-14 text-lg font-semibold rounded-2xl gradient-emergency text-accent-foreground shadow-emergency"
+          className="w-full h-14 text-lg font-semibold rounded-2xl gradient-emergency text-accent-foreground shadow-emergency transition-transform active:scale-[0.98]"
         >
           <Phone className="w-5 h-5 mr-2" />
           Chamar guincho / emergência
@@ -265,7 +294,7 @@ const VehicleMap = ({ diagnosis, onBack, onEmergency }: VehicleMapProps) => {
         <Button onClick={onBack} variant="outline" className="w-full h-12 rounded-2xl">
           Voltar para orientação
         </Button>
-      </div>
+      </motion.div>
     </div>
   );
 };
