@@ -1,5 +1,5 @@
-import { useState, useRef, useCallback } from "react";
-import { Camera, Upload, Copy, ArrowLeft, Loader2, FileText, X } from "lucide-react";
+import { useState, useRef, useCallback, useMemo } from "react";
+import { Camera, Upload, Copy, ArrowLeft, Loader2, FileText, X, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -15,6 +15,29 @@ const OcrPage = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [extractedText, setExtractedText] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  const detectedBillType = useMemo(() => {
+    if (!extractedText) return null;
+    const lower = extractedText.toLowerCase();
+    const waterKeywords = ["conta de água", "saneamento", "sabesp", "copasa", "cagece", "compesa", "cedae", "embasa", "sanepar", "corsan", "caern", "deso", "caema", "cosanpa", "águas de", "consumo m³", "leitura anterior", "hidrômetro"];
+    const energyKeywords = ["conta de luz", "conta de energia", "energia elétrica", "enel", "cemig", "cpfl", "copel", "celesc", "celpe", "coelba", "coelce", "cosern", "ceal", "equatorial", "energisa", "light", "eletropaulo", "kwh", "consumo kwh", "bandeira tarifária", "medidor"];
+    const gasKeywords = ["conta de gás", "comgás", "ceg", "gás natural", "scgás", "bahiagás", "gasmig", "m³ de gás"];
+
+    if (waterKeywords.some(k => lower.includes(k))) return "agua";
+    if (energyKeywords.some(k => lower.includes(k))) return "energia";
+    if (gasKeywords.some(k => lower.includes(k))) return "gas";
+    return null;
+  }, [extractedText]);
+
+  const billLabel = detectedBillType === "agua" ? "💧 Conta de Água" : detectedBillType === "energia" ? "⚡ Conta de Energia" : detectedBillType === "gas" ? "🔥 Conta de Gás" : null;
+
+  const handleAskCassia = () => {
+    if (!extractedText || !detectedBillType) return;
+    const summary = extractedText.slice(0, 300);
+    const serviceMap: Record<string, string> = { agua: "água", energia: "luz", gas: "gás" };
+    const msg = encodeURIComponent(`Extraí o texto da minha conta de ${serviceMap[detectedBillType]}. Pode me ajudar a entender? Aqui está o conteúdo: ${summary}`);
+    navigate(`/?chat=open&service=${detectedBillType}&ocrMessage=${msg}`);
+  };
 
   const processImage = useCallback(async (base64: string) => {
     setIsLoading(true);
@@ -185,6 +208,24 @@ const OcrPage = () => {
                 <div className="bg-card border border-border rounded-xl p-4 shadow-sm prose prose-sm max-w-none dark:prose-invert">
                   <ReactMarkdown>{extractedText}</ReactMarkdown>
                 </div>
+
+                {detectedBillType && (
+                  <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-2">
+                    <p className="text-sm font-medium text-foreground">
+                      {billLabel} detectada! 🎉
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      A Cássia pode te ajudar a entender sua conta e resolver problemas.
+                    </p>
+                    <Button
+                      onClick={handleAskCassia}
+                      className="w-full gap-2 rounded-xl bg-primary text-primary-foreground"
+                    >
+                      <MessageSquare className="w-4 h-4" />
+                      Pedir ajuda à Cássia
+                    </Button>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-3">
                   <Button
