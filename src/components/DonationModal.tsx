@@ -31,12 +31,29 @@ const DonationModal = ({ externalOpen, onExternalClose }: { externalOpen?: boole
   }, [externalOpen]);
 
   useEffect(() => {
+    // Initial fetch
     supabase
       .from("access_logs")
       .select("id", { count: "exact", head: true })
       .then(({ count }) => {
         if (count) setTotalAcessos(count);
       });
+
+    // Realtime subscription
+    const channel = supabase
+      .channel("access-logs-count")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "access_logs" },
+        () => {
+          setTotalAcessos(prev => prev + 1);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const handleCopy = async () => {
