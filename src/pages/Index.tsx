@@ -11,7 +11,7 @@ import EmergencyFloatingButton from "@/components/EmergencyFloatingButton";
 import BackgroundMusic from "@/components/BackgroundMusic";
 import FeedbackModal from "@/components/FeedbackModal";
 import { useNavigate } from "react-router-dom";
-import { Car } from "lucide-react";
+import { Car, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getContactsByCep, CityContacts, emergencyNumbers } from "@/utils/cityContacts";
 import { useToast } from "@/hooks/use-toast";
@@ -98,9 +98,9 @@ const Index = () => {
       <main className="pt-[calc(4rem+2.5rem)]">
         <HeroSection onStartChat={handleStartChat} />
 
-        {/* Vehicle Emergency CTA */}
+        {/* Quick Tools */}
         <section className="py-4 bg-background">
-          <div className="container mx-auto px-4 max-w-5xl">
+          <div className="container mx-auto px-4 max-w-5xl space-y-3">
             <Button
               onClick={() => navigate("/emergencia-veicular")}
               variant="outline"
@@ -109,6 +109,15 @@ const Index = () => {
               <Car className="w-5 h-5 text-warning" />
               <span>🚗 Emergência Veicular</span>
               <span className="text-xs text-muted-foreground hidden sm:inline">— Diagnóstico e mapa de serviços</span>
+            </Button>
+            <Button
+              onClick={() => navigate("/ocr")}
+              variant="outline"
+              className="w-full h-12 rounded-xl border-primary/40 bg-primary/10 text-foreground hover:bg-primary/20 shadow-soft flex items-center gap-3 justify-center text-sm font-medium"
+            >
+              <FileText className="w-5 h-5 text-primary" />
+              <span>📄 Leitor de Texto (OCR)</span>
+              <span className="text-xs text-muted-foreground hidden sm:inline">— Extraia texto de fotos e documentos</span>
             </Button>
           </div>
         </section>
