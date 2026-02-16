@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { CheckCircle2, Loader2, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { DiagnosisResult } from "@/pages/EmergenciaVeicular";
 import { motion } from "framer-motion";
@@ -23,6 +24,7 @@ const fadeUp = {
 };
 
 const VehicleDiagnosis = ({ onComplete, initialDescription }: VehicleDiagnosisProps) => {
+  const [description, setDescription] = useState(initialDescription || "");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [checklist, setChecklist] = useState<ChecklistItem[]>([
     { id: "noise", question: "Há barulho estranho?", emoji: "🔊", answer: null },
@@ -55,7 +57,7 @@ const VehicleDiagnosis = ({ onComplete, initialDescription }: VehicleDiagnosisPr
       const { data, error } = await supabase.functions.invoke("vehicle-diagnosis", {
         body: {
           symptoms,
-          description: initialDescription || "",
+          description: description || "",
           checklist: checklist.map(c => ({ question: c.question, answer: c.answer })),
         },
       });
@@ -115,15 +117,27 @@ const VehicleDiagnosis = ({ onComplete, initialDescription }: VehicleDiagnosisPr
         </p>
       </motion.div>
 
-      {initialDescription && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="bg-muted rounded-xl p-3 text-sm"
-        >
-          <span className="font-medium">Sua descrição:</span> "{initialDescription}"
-        </motion.div>
-      )}
+      {/* Text description field */}
+      <motion.div
+        variants={fadeUp}
+        initial="initial"
+        animate="animate"
+        transition={{ delay: 0.1 }}
+        className="space-y-2"
+      >
+        <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+          <MessageSquare className="w-4 h-4 text-primary" />
+          Descreva o problema (opcional)
+        </label>
+        <Textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Ex: O carro está fazendo um barulho ao frear, vibra no volante..."
+          className="rounded-xl border-border resize-none min-h-[80px]"
+          maxLength={500}
+        />
+        <p className="text-xs text-muted-foreground text-right">{description.length}/500</p>
+      </motion.div>
 
       <div className="space-y-3">
         {checklist.map((item, index) => (
