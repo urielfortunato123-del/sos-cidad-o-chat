@@ -10,7 +10,7 @@ import EmergencyFloatingButton from "@/components/EmergencyFloatingButton";
 
 import BackgroundMusic from "@/components/BackgroundMusic";
 import FeedbackModal from "@/components/FeedbackModal";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Car, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getContactsByCep, CityContacts, emergencyNumbers } from "@/utils/cityContacts";
@@ -20,7 +20,9 @@ import { useAccessLog } from "@/hooks/useAccessLog";
 const Index = () => {
   useAccessLog('/');
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [chatOpen, setChatOpen] = useState(false);
+  const [ocrMessage, setOcrMessage] = useState<string | undefined>();
   const [userCep, setUserCep] = useState("");
   const [userCityInfo, setUserCityInfo] = useState<{ city: string; state: string } | undefined>();
   const [selectedService, setSelectedService] = useState<string | undefined>();
@@ -28,6 +30,18 @@ const Index = () => {
   const [contactsModalOpen, setContactsModalOpen] = useState(false);
   const [modalServiceType, setModalServiceType] = useState<"prefeitura" | "energia" | "agua" | "gas">("prefeitura");
   const { toast } = useToast();
+
+  // Handle OCR redirect with chat=open
+  useEffect(() => {
+    if (searchParams.get("chat") === "open") {
+      const msg = searchParams.get("ocrMessage");
+      const service = searchParams.get("service");
+      if (msg) setOcrMessage(decodeURIComponent(msg));
+      if (service) setSelectedService(service);
+      setChatOpen(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     if (userCep && userCep.length >= 8) {
@@ -133,11 +147,12 @@ const Index = () => {
 
       <ChatInterface
         isOpen={chatOpen}
-        onClose={() => setChatOpen(false)}
+        onClose={() => { setChatOpen(false); setOcrMessage(undefined); }}
         initialCep={userCep}
         initialService={selectedService}
         cityInfo={userCityInfo || (cityContacts ? { city: cityContacts.city, state: cityContacts.state } : undefined)}
         cityContacts={cityContacts}
+        initialMessage={ocrMessage}
       />
 
       <ContactsModal

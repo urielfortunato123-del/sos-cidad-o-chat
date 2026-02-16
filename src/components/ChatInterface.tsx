@@ -22,9 +22,10 @@ interface ChatInterfaceProps {
   initialService?: string;
   cityInfo?: { city: string; state: string };
   cityContacts?: CityContacts | null;
+  initialMessage?: string;
 }
 
-const ChatInterface = ({ isOpen, onClose, initialCep, initialService, cityInfo, cityContacts }: ChatInterfaceProps) => {
+const ChatInterface = ({ isOpen, onClose, initialCep, initialService, cityInfo, cityContacts, initialMessage }: ChatInterfaceProps) => {
   const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
@@ -36,6 +37,8 @@ const ChatInterface = ({ isOpen, onClose, initialCep, initialService, cityInfo, 
   const locationDisplay = cityInfo 
     ? `${cityInfo.city}/${cityInfo.state}` 
     : `CEP: ${initialCep}`;
+
+  const [hasSentInitialMessage, setHasSentInitialMessage] = useState(false);
 
   useEffect(() => {
     if (isOpen && messages.length === 0) {
@@ -58,8 +61,24 @@ const ChatInterface = ({ isOpen, onClose, initialCep, initialService, cityInfo, 
         timestamp: new Date(),
       };
       setMessages([welcomeMessage]);
+      setHasSentInitialMessage(false);
     }
   }, [isOpen, initialCep, initialService, messages.length, cityInfo]);
+
+  // Auto-send OCR message after welcome
+  useEffect(() => {
+    if (isOpen && initialMessage && messages.length === 1 && !hasSentInitialMessage && !isTyping) {
+      setHasSentInitialMessage(true);
+      const userMsg: Message = {
+        id: Date.now().toString(),
+        role: "user",
+        content: initialMessage,
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, userMsg]);
+      sendToAI(initialMessage);
+    }
+  }, [isOpen, initialMessage, messages.length, hasSentInitialMessage, isTyping]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
