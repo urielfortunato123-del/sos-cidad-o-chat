@@ -8,6 +8,7 @@ import Install from "./pages/Install";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 import EmergenciaVeicular from "./pages/EmergenciaVeicular";
+import OcrPage from "./pages/OcrPage";
 import VehicleFloatingButton from "./components/VehicleFloatingButton";
 import NotFound from "./pages/NotFound";
 
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/emergencia-veicular" element={<EmergenciaVeicular />} />
+          <Route path="/ocr" element={<OcrPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
