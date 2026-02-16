@@ -32,27 +32,49 @@ const OcrPage = () => {
       .join("\n\n");
   }, [pages]);
 
-  const detectedBillType = useMemo(() => {
+  const detectedDocType = useMemo(() => {
     if (!allText) return null;
     const lower = allText.toLowerCase();
+
     const waterKeywords = ["conta de água", "saneamento", "sabesp", "copasa", "cagece", "compesa", "cedae", "embasa", "sanepar", "corsan", "caern", "deso", "caema", "cosanpa", "águas de", "consumo m³", "leitura anterior", "hidrômetro"];
     const energyKeywords = ["conta de luz", "conta de energia", "energia elétrica", "enel", "cemig", "cpfl", "copel", "celesc", "celpe", "coelba", "coelce", "cosern", "ceal", "equatorial", "energisa", "light", "eletropaulo", "kwh", "consumo kwh", "bandeira tarifária", "medidor"];
     const gasKeywords = ["conta de gás", "comgás", "ceg", "gás natural", "scgás", "bahiagás", "gasmig", "m³ de gás"];
+    const cnhKeywords = ["carteira nacional de habilitação", "habilitação", "cnh", "registro nacional", "permissão para dirigir", "categoria a", "categoria b", "categoria ab", "categoria c", "categoria d", "categoria e", "acc", "1ª habilitação", "detran", "renach", "validade da cnh", "pgu", "nº registro"];
+    const crlvKeywords = ["certificado de registro", "licenciamento", "crlv", "renavam", "chassi", "placa", "exercício", "espécie/tipo", "combustível", "potência", "cilindrada", "cap.pass", "marca/modelo/versão"];
+    const boletoKeywords = ["boleto", "código de barras", "linha digitável", "vencimento", "valor do documento", "nosso número", "sacado", "cedente", "banco", "pagável em qualquer", "após o vencimento", "multa", "mora", "instruções de pagamento"];
+    const iptuKeywords = ["iptu", "imposto predial", "imposto territorial", "prefeitura", "contribuinte", "inscrição imobiliária", "valor venal"];
+    const ipvaKeywords = ["ipva", "imposto sobre propriedade de veículos", "veículo automotor", "licenciamento anual"];
 
     if (waterKeywords.some(k => lower.includes(k))) return "agua";
     if (energyKeywords.some(k => lower.includes(k))) return "energia";
     if (gasKeywords.some(k => lower.includes(k))) return "gas";
+    if (cnhKeywords.some(k => lower.includes(k))) return "cnh";
+    if (crlvKeywords.some(k => lower.includes(k))) return "crlv";
+    if (boletoKeywords.some(k => lower.includes(k))) return "boleto";
+    if (iptuKeywords.some(k => lower.includes(k))) return "iptu";
+    if (ipvaKeywords.some(k => lower.includes(k))) return "ipva";
     return null;
   }, [allText]);
 
-  const billLabel = detectedBillType === "agua" ? "💧 Conta de Água" : detectedBillType === "energia" ? "⚡ Conta de Energia" : detectedBillType === "gas" ? "🔥 Conta de Gás" : null;
+  const docLabels: Record<string, { emoji: string; label: string; cassiaMsg: string }> = {
+    agua: { emoji: "💧", label: "Conta de Água", cassiaMsg: "conta de água" },
+    energia: { emoji: "⚡", label: "Conta de Energia", cassiaMsg: "conta de luz" },
+    gas: { emoji: "🔥", label: "Conta de Gás", cassiaMsg: "conta de gás" },
+    cnh: { emoji: "🪪", label: "CNH", cassiaMsg: "CNH (Carteira Nacional de Habilitação)" },
+    crlv: { emoji: "🚗", label: "CRLV", cassiaMsg: "CRLV (Certificado de Registro e Licenciamento)" },
+    boleto: { emoji: "📋", label: "Boleto", cassiaMsg: "boleto bancário" },
+    iptu: { emoji: "🏠", label: "IPTU", cassiaMsg: "IPTU" },
+    ipva: { emoji: "🚙", label: "IPVA", cassiaMsg: "IPVA" },
+  };
+
+  const detectedDoc = detectedDocType ? docLabels[detectedDocType] : null;
 
   const handleAskCassia = () => {
-    if (!allText || !detectedBillType) return;
+    if (!allText || !detectedDocType || !detectedDoc) return;
     const summary = allText.slice(0, 500);
-    const serviceMap: Record<string, string> = { agua: "água", energia: "luz", gas: "gás" };
-    const msg = encodeURIComponent(`Extraí o texto da minha conta de ${serviceMap[detectedBillType]} (${pages.length} página(s)). Pode me ajudar a entender? Aqui está o conteúdo: ${summary}`);
-    navigate(`/?chat=open&service=${detectedBillType}&ocrMessage=${msg}`);
+    const msg = encodeURIComponent(`Extraí o texto do meu documento: ${detectedDoc.cassiaMsg} (${pages.length} página(s)). Pode me ajudar a entender? Aqui está o conteúdo: ${summary}`);
+    const service = ["agua", "energia", "gas"].includes(detectedDocType) ? detectedDocType : undefined;
+    navigate(`/?chat=open${service ? `&service=${service}` : ""}&ocrMessage=${msg}`);
   };
 
   const processImage = useCallback(async (pageId: string, base64: string) => {
@@ -330,13 +352,13 @@ const OcrPage = () => {
                   </Button>
                 </div>
 
-                {detectedBillType && (
+                {detectedDoc && (
                   <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-2">
                     <p className="text-sm font-medium text-foreground">
-                      {billLabel} detectada! 🎉
+                      {detectedDoc.emoji} {detectedDoc.label} detectada! 🎉
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      A Cássia pode te ajudar a entender sua conta e resolver problemas.
+                      A Cássia pode te ajudar a entender este documento e resolver problemas.
                     </p>
                     <Button
                       onClick={handleAskCassia}
