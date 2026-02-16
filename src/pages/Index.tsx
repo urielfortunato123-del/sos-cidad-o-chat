@@ -10,6 +10,7 @@ import EmergencyFloatingButton from "@/components/EmergencyFloatingButton";
 
 import BackgroundMusic from "@/components/BackgroundMusic";
 import FeedbackModal from "@/components/FeedbackModal";
+import DonationModal from "@/components/DonationModal";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Car, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -108,6 +109,7 @@ const Index = () => {
       <EmergencyFloatingButton />
       <BackgroundMusic />
       <FeedbackModal />
+      <DonationModal />
       
       <main className="pt-[calc(4rem+2.5rem)]">
         <HeroSection onStartChat={handleStartChat} />
