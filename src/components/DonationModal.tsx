@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Copy, Heart, Users, X } from "lucide-react";
@@ -12,6 +12,8 @@ const DonationModal = ({ externalOpen, onExternalClose }: { externalOpen?: boole
   const [open, setOpen] = useState(false);
   const [totalAcessos, setTotalAcessos] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [animatePulse, setAnimatePulse] = useState(false);
+  const isFirstLoad = useRef(true);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -37,6 +39,7 @@ const DonationModal = ({ externalOpen, onExternalClose }: { externalOpen?: boole
       .select("id", { count: "exact", head: true })
       .then(({ count }) => {
         if (count) setTotalAcessos(count);
+        isFirstLoad.current = false;
       });
 
     // Realtime subscription
@@ -47,6 +50,10 @@ const DonationModal = ({ externalOpen, onExternalClose }: { externalOpen?: boole
         { event: "INSERT", schema: "public", table: "access_logs" },
         () => {
           setTotalAcessos(prev => prev + 1);
+          if (!isFirstLoad.current) {
+            setAnimatePulse(true);
+            setTimeout(() => setAnimatePulse(false), 700);
+          }
         }
       )
       .subscribe();
@@ -124,7 +131,17 @@ const DonationModal = ({ externalOpen, onExternalClose }: { externalOpen?: boole
         {totalAcessos > 0 && (
           <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm">
             <Users className="w-4 h-4" />
-            <span>Já são <strong className="text-foreground">{totalAcessos.toLocaleString("pt-BR")}</strong> acessos!</span>
+            <span>
+              Já são{" "}
+              <strong
+                className={`text-foreground inline-block transition-all duration-300 ${
+                  animatePulse ? "scale-125 text-primary" : "scale-100"
+                }`}
+              >
+                {totalAcessos.toLocaleString("pt-BR")}
+              </strong>{" "}
+              acessos!
+            </span>
           </div>
         )}
 
