@@ -1,6 +1,7 @@
-import { Shield, Heart } from "lucide-react";
+import { Shield, Heart, HandHeart } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-const Footer = () => {
+const Footer = ({ onDonateClick }: { onDonateClick?: () => void }) => {
   return (
     <footer id="sobre" className="bg-card border-t border-border py-12 scroll-mt-20">
       <div className="container mx-auto px-4">
@@ -21,11 +22,22 @@ const Footer = () => {
             <a href="#" className="hover:text-foreground transition-smooth">Contato</a>
           </div>
 
-          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-            <span>Desenvolvido por</span>
-            <span className="font-medium text-foreground">Uriel da Fonseca Fortunato</span>
-            <Heart className="w-4 h-4 text-accent fill-accent" />
-            <span>para o Brasil</span>
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onDonateClick}
+              className="gap-2 border-primary/30 hover:bg-primary/10 text-primary"
+            >
+              <HandHeart className="w-4 h-4" />
+              Ajude o Desenvolvedor
+            </Button>
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              <span>Desenvolvido por</span>
+              <span className="font-medium text-foreground">Uriel da Fonseca Fortunato</span>
+              <Heart className="w-4 h-4 text-accent fill-accent" />
+              <span>para o Brasil</span>
+            </div>
           </div>
         </div>
 

@@ -8,7 +8,7 @@ import pixQrCode from "@/assets/pix-qrcode.webp";
 
 const PIX_CODE = "00020126360014BR.GOV.BCB.PIX0114+5514976006620520400005303986540520.005802BR5901N6001C62130509AJUDEODEV6304BE1A";
 
-const DonationModal = () => {
+const DonationModal = ({ externalOpen, onExternalClose }: { externalOpen?: boolean; onExternalClose?: () => void }) => {
   const [open, setOpen] = useState(false);
   const [totalAcessos, setTotalAcessos] = useState(0);
   const [copied, setCopied] = useState(false);
@@ -25,6 +25,10 @@ const DonationModal = () => {
       return () => clearTimeout(timer);
     }
   }, []);
+
+  useEffect(() => {
+    if (externalOpen) setOpen(true);
+  }, [externalOpen]);
 
   useEffect(() => {
     supabase
@@ -47,7 +51,7 @@ const DonationModal = () => {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v && onExternalClose) onExternalClose(); }}>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto bg-card border-primary/20">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl text-primary">

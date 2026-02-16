@@ -30,6 +30,7 @@ const Index = () => {
   const [cityContacts, setCityContacts] = useState<CityContacts | null>(null);
   const [contactsModalOpen, setContactsModalOpen] = useState(false);
   const [modalServiceType, setModalServiceType] = useState<"prefeitura" | "energia" | "agua" | "gas">("prefeitura");
+  const [donationOpen, setDonationOpen] = useState(false);
   const { toast } = useToast();
 
   // Handle OCR redirect with chat=open
@@ -109,7 +110,7 @@ const Index = () => {
       <EmergencyFloatingButton />
       <BackgroundMusic />
       <FeedbackModal />
-      <DonationModal />
+      <DonationModal externalOpen={donationOpen} onExternalClose={() => setDonationOpen(false)} />
       
       <main className="pt-[calc(4rem+2.5rem)]">
         <HeroSection onStartChat={handleStartChat} />
@@ -145,7 +146,7 @@ const Index = () => {
         />
       </main>
 
-      <Footer />
+      <Footer onDonateClick={() => setDonationOpen(true)} />
 
       <ChatInterface
         isOpen={chatOpen}
