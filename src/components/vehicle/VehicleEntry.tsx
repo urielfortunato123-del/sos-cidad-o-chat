@@ -1,15 +1,15 @@
-import { ClipboardList, Mic, MapPin, Car } from "lucide-react";
+import { ClipboardList, MapPin, Car } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import AudioRecorder from "./AudioRecorder";
 import DashboardWarnings from "./DashboardWarnings";
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 interface VehicleEntryProps {
   onChecklist: () => void;
   onDescribe: (description: string) => void;
   onMap: () => void;
 }
+
+const VehicleEntry = ({ onChecklist, onDescribe, onMap }: VehicleEntryProps) => {
 
 const stagger = {
   animate: { transition: { staggerChildren: 0.1 } },
@@ -19,9 +19,6 @@ const fadeUp = {
   initial: { opacity: 0, y: 20 },
   animate: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as const } },
 };
-
-const VehicleEntry = ({ onChecklist, onDescribe, onMap }: VehicleEntryProps) => {
-  const [showAudio, setShowAudio] = useState(false);
 
   return (
     <motion.div variants={stagger} initial="initial" animate="animate" className="space-y-6">
@@ -52,33 +49,6 @@ const VehicleEntry = ({ onChecklist, onDescribe, onMap }: VehicleEntryProps) => 
             </div>
           </Button>
         </motion.div>
-
-        <motion.div variants={fadeUp}>
-          <Button
-            onClick={() => setShowAudio(!showAudio)}
-            className="w-full h-20 text-lg font-semibold rounded-2xl bg-accent text-accent-foreground hover:bg-accent/90 shadow-soft flex items-center gap-4 justify-start px-6 transition-transform active:scale-[0.98]"
-          >
-            <Mic className="w-8 h-8 shrink-0" />
-            <div className="text-left">
-              <div>Descrever Problema</div>
-              <div className="text-sm font-normal opacity-80">Grave um áudio ou digite</div>
-            </div>
-          </Button>
-        </motion.div>
-
-        <AnimatePresence>
-          {showAudio && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="overflow-hidden"
-            >
-              <AudioRecorder onTranscription={onDescribe} />
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         <motion.div variants={fadeUp}>
           <Button
