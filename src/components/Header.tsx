@@ -1,8 +1,8 @@
-import { Shield, Menu } from "lucide-react";
+import { Shield, Menu, HandHeart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
-const Header = () => {
+const Header = ({ onDonateClick }: { onDonateClick?: () => void }) => {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const scrollToSection = (sectionId: string) => {
@@ -59,6 +59,10 @@ const Header = () => {
           >
             Sobre
           </button>
+          <Button variant="outline" size="sm" onClick={onDonateClick} className="gap-1.5 border-primary/30 text-primary hover:bg-primary/10">
+            <HandHeart className="w-4 h-4" />
+            Doar
+          </Button>
           <Button variant="hero" size="sm" onClick={() => scrollToSection("emergencia")}>
             Emergência
           </Button>
@@ -86,6 +90,10 @@ const Header = () => {
             >
               Sobre
             </button>
+            <Button variant="outline" size="lg" className="gap-2 border-primary/30 text-primary" onClick={() => { onDonateClick?.(); setMenuOpen(false); }}>
+              <HandHeart className="w-4 h-4" />
+              Ajude o Desenvolvedor
+            </Button>
             <Button variant="emergency" size="lg" className="mt-2" onClick={() => scrollToSection("emergencia")}>
               Emergência
             </Button>
