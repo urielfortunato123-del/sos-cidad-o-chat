@@ -5,16 +5,16 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const HF_API_URL = "https://router.huggingface.co/v1/chat/completions";
-const HF_MODEL = "meta-llama/Llama-3.3-70B-Instruct";
+const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
+const OPENROUTER_MODEL = "meta-llama/llama-3.3-70b-instruct";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const { symptoms, description, checklist } = await req.json();
-    const HF_TOKEN = Deno.env.get("HUGGINGFACE_API_TOKEN");
-    if (!HF_TOKEN) throw new Error("HUGGINGFACE_API_TOKEN not configured");
+    const OPENROUTER_KEY = Deno.env.get("OPENROUTER_API_KEY");
+    if (!OPENROUTER_KEY) throw new Error("OPENROUTER_API_KEY not configured");
 
     const checklistText = (checklist || [])
       .map((c: { question: string; answer: boolean }) => `${c.question} ${c.answer ? "SIM" : "NÃO"}`)
@@ -46,14 +46,16 @@ REGRAS:
 - serviceTypes deve listar apenas os tipos relevantes ao problema
 - RESPONDA APENAS O JSON, nada mais`;
 
-    const response = await fetch(HF_API_URL, {
+    const response = await fetch(OPENROUTER_API_URL, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${HF_TOKEN}`,
+        Authorization: `Bearer ${OPENROUTER_KEY}`,
         "Content-Type": "application/json",
+        "HTTP-Referer": "https://sos-cidadao.lovable.app",
+        "X-Title": "SOS Cidadão",
       },
       body: JSON.stringify({
-        model: HF_MODEL,
+        model: OPENROUTER_MODEL,
         messages: [{ role: "user", content: prompt }],
         temperature: 0.1,
         max_tokens: 300,
@@ -62,7 +64,7 @@ REGRAS:
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error("HF error:", response.status, errText);
+      console.error("OpenRouter error:", response.status, errText);
       throw new Error(`Hugging Face API error: ${response.status}`);
     }
 

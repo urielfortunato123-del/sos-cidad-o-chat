@@ -5,8 +5,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const HF_API_URL = 'https://router.huggingface.co/v1/chat/completions';
-const HF_MODEL = 'meta-llama/Llama-3.3-70B-Instruct';
+const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const OPENROUTER_MODEL = 'meta-llama/llama-3.3-70b-instruct';
 
 function buildSystemPrompt(cityContacts: any): string {
   let systemPrompt = `Você é a Cássia Fortunato, assistente virtual do SOS Cidadão. Você é uma pessoa acolhedora, simpática e que realmente se importa com quem está falando.
@@ -126,11 +126,11 @@ serve(async (req) => {
       );
     }
 
-    const HF_TOKEN = Deno.env.get('HUGGINGFACE_API_TOKEN');
-    if (!HF_TOKEN) {
-      console.error('HUGGINGFACE_API_TOKEN not configured');
+    const OPENROUTER_KEY = Deno.env.get('OPENROUTER_API_KEY');
+    if (!OPENROUTER_KEY) {
+      console.error('OPENROUTER_API_KEY not configured');
       return new Response(
-        JSON.stringify({ error: 'Token da Hugging Face não configurado' }),
+        JSON.stringify({ error: 'Chave da OpenRouter não configurada' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -155,16 +155,18 @@ serve(async (req) => {
 
     messages.push({ role: 'user', content: message });
 
-    console.log('Sending request to Hugging Face...');
+    console.log('Sending request to OpenRouter...');
 
-    const response = await fetch(HF_API_URL, {
+    const response = await fetch(OPENROUTER_API_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${HF_TOKEN}`,
+        'Authorization': `Bearer ${OPENROUTER_KEY}`,
         'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://sos-cidadao.lovable.app',
+        'X-Title': 'SOS Cidadão',
       },
       body: JSON.stringify({
-        model: HF_MODEL,
+        model: OPENROUTER_MODEL,
         messages,
         temperature: 0.3,
         max_tokens: 200,
@@ -209,7 +211,7 @@ serve(async (req) => {
     const data = await response.json();
     const aiResponse = data.choices?.[0]?.message?.content || 'Desculpe, não consegui processar sua mensagem.';
 
-    console.log('HF response received successfully');
+    console.log('OpenRouter response received successfully');
 
     return new Response(
       JSON.stringify({ response: aiResponse }),
