@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import VehicleEntry from "@/components/vehicle/VehicleEntry";
 import VehicleDiagnosis from "@/components/vehicle/VehicleDiagnosis";
@@ -33,9 +33,16 @@ const pageTransition = {
 const EmergenciaVeicular = () => {
   useAccessLog('/emergencia-veicular');
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [diagnosis, setDiagnosis] = useState<DiagnosisResult | null>(null);
   const [userDescription, setUserDescription] = useState("");
+
+  useEffect(() => {
+    if (searchParams.get("step") === "map") {
+      setStep(4);
+    }
+  }, [searchParams]);
 
   const handleDiagnosisComplete = (result: DiagnosisResult) => {
     setDiagnosis(result);
