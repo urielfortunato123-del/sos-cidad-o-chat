@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, X, Bot, User, MapPin, Search, MessageSquare, Car } from "lucide-react";
+import { Send, X, Bot, User, MapPin, Search, MessageSquare, Car, Map } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +13,7 @@ interface Message {
   content: string;
   timestamp: Date;
   hasVehicleAction?: boolean;
+  hasMapAction?: boolean;
 }
 
 interface ChatInterfaceProps {
@@ -109,7 +110,8 @@ const ChatInterface = ({ isOpen, onClose, initialCep, initialService, cityInfo, 
       let aiResponse = data?.response || "Desculpe, não consegui processar sua mensagem. Tente novamente.";
       
       const hasVehicleAction = aiResponse.includes("[VEICULO_EMERGENCIA]");
-      aiResponse = aiResponse.replace(/\[VEICULO_EMERGENCIA\]/g, "").trim();
+      const hasMapAction = aiResponse.includes("[MAPA_SERVICOS]");
+      aiResponse = aiResponse.replace(/\[VEICULO_EMERGENCIA\]/g, "").replace(/\[MAPA_SERVICOS\]/g, "").trim();
 
       const newMessage: Message = {
         id: Date.now().toString(),
@@ -117,6 +119,7 @@ const ChatInterface = ({ isOpen, onClose, initialCep, initialService, cityInfo, 
         content: aiResponse,
         timestamp: new Date(),
         hasVehicleAction,
+        hasMapAction,
       };
       
       setMessages((prev) => [...prev, newMessage]);
@@ -247,18 +250,36 @@ const ChatInterface = ({ isOpen, onClose, initialCep, initialService, cityInfo, 
                     }`}
                   >
                     <p className="text-sm whitespace-pre-line">{message.content}</p>
-                    {message.hasVehicleAction && (
-                      <Button
-                        onClick={() => {
-                          onClose();
-                          navigate("/emergencia-veicular");
-                        }}
-                        size="sm"
-                        className="mt-2 rounded-xl bg-warning text-warning-foreground hover:bg-warning/90 gap-1.5 text-xs font-semibold w-full"
-                      >
-                        <Car className="w-4 h-4" />
-                        Abrir Emergência Veicular
-                      </Button>
+                    {(message.hasVehicleAction || message.hasMapAction) && (
+                      <div className="flex flex-col gap-1.5 mt-2">
+                        {message.hasVehicleAction && (
+                          <Button
+                            onClick={() => {
+                              onClose();
+                              navigate("/emergencia-veicular");
+                            }}
+                            size="sm"
+                            className="rounded-xl bg-warning text-warning-foreground hover:bg-warning/90 gap-1.5 text-xs font-semibold w-full"
+                          >
+                            <Car className="w-4 h-4" />
+                            Diagnóstico Veicular
+                          </Button>
+                        )}
+                        {message.hasMapAction && (
+                          <Button
+                            onClick={() => {
+                              onClose();
+                              navigate("/emergencia-veicular?step=map");
+                            }}
+                            size="sm"
+                            variant="outline"
+                            className="rounded-xl gap-1.5 text-xs font-semibold w-full border-primary text-primary hover:bg-primary/10"
+                          >
+                            <Map className="w-4 h-4" />
+                            Ver Serviços no Mapa
+                          </Button>
+                        )}
+                      </div>
                     )}
                     <span className="text-xs opacity-60 mt-1 block">
                       {message.timestamp.toLocaleTimeString("pt-BR", {
