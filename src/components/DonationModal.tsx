@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import pixQrCode from "@/assets/pix-qrcode.webp";
 
-const PIX_CODE = "00020126360014BR.GOV.BCB.PIX0114+5514976006620520400005303986540520.005802BR5901N6001C62130509AJUDEODEV6304BE1A";
+const PIX_CODE = "00020126330014BR.GOV.BCB.PIX011136348348715204000053039865802BR5901N6001C62140510SOSCIDAD4O6304DF0C";
 
 const DonationModal = ({ externalOpen, onExternalClose }: { externalOpen?: boolean; onExternalClose?: () => void }) => {
   const [open, setOpen] = useState(false);
