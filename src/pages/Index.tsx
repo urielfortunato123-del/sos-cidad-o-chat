@@ -5,7 +5,7 @@ import ServicesSection from "@/components/ServicesSection";
 import ChatInterface from "@/components/ChatInterface";
 import ContactsModal from "@/components/ContactsModal";
 import Footer from "@/components/Footer";
-import EmergencyFloatingButton from "@/components/EmergencyFloatingButton";
+
 import BackgroundMusic from "@/components/BackgroundMusic";
 
 import DonationModal from "@/components/DonationModal";
@@ -90,7 +90,7 @@ const Index = () => {
       <BroadcastAlertBanner />
       <NotificationBanner />
       <ProximityAlertListener />
-      <EmergencyFloatingButton />
+      
       <BackgroundMusic />
       
       <DonationModal externalOpen={donationOpen} onExternalClose={() => setDonationOpen(false)} />

@@ -14,7 +14,7 @@ import MapaSeguranca from "./pages/MapaSeguranca";
 import ReportarEvento from "./pages/ReportarEvento";
 import QrResponder from "./pages/QrResponder";
 import Diagnostico from "./pages/Diagnostico";
-import VehicleFloatingButton from "./components/VehicleFloatingButton";
+
 import BottomTabs from "./components/BottomTabs";
 import NotFound from "./pages/NotFound";
 
@@ -26,7 +26,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <VehicleFloatingButton />
+        
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/install" element={<Install />} />
