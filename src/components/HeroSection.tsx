@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import WeatherBadge from "@/components/WeatherBadge";
+import WeatherForecastCard from "@/components/WeatherForecastCard";
 
 interface HeroSectionProps {
   onStartChat: (cep: string, cityInfo?: { city: string; state: string }) => void;
@@ -224,6 +225,9 @@ const HeroSection = ({ onStartChat }: HeroSectionProps) => {
             </button>
           ))}
         </motion.div>
+
+        {/* Weather Forecast Card */}
+        <WeatherForecastCard />
       </div>
 
       {/* Bottom wave */}

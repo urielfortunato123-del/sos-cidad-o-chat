@@ -1,5 +1,13 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNotifications } from "@/hooks/useNotifications";
+
+export interface HourlyForecast {
+  time: string;
+  precipitation: number;
+  precipitationProbability: number;
+  windSpeed: number;
+}
+
 export interface WeatherData {
   temperature: number;
   apparentTemperature: number;
@@ -12,6 +20,8 @@ export interface WeatherData {
   hasSevereWeather: boolean;
   severityLevel: "none" | "moderate" | "severe" | "extreme";
   alertMessage: string;
+  // Hourly
+  hourlyForecast: HourlyForecast[];
 }
 
 const WMO_CODES: Record<number, { label: string; emoji: string; severe: boolean }> = {
@@ -77,7 +87,7 @@ export function useWeather(lat?: number, lng?: number) {
       setLoading(true);
       setError(null);
       try {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,is_day&timezone=America%2FSao_Paulo`;
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,is_day&hourly=precipitation,precipitation_probability,wind_speed_10m&forecast_hours=24&timezone=America%2FSao_Paulo`;
         const res = await fetch(url);
         if (!res.ok) throw new Error("Weather API error");
         const data = await res.json();
@@ -88,6 +98,14 @@ export function useWeather(lat?: number, lng?: number) {
           const wind = c.wind_speed_10m;
           const precip = c.precipitation;
           const severity = getSeverity(code, wind, precip);
+
+          // Parse hourly data
+          const hourly: HourlyForecast[] = (data.hourly?.time || []).map((t: string, i: number) => ({
+            time: t,
+            precipitation: data.hourly.precipitation?.[i] ?? 0,
+            precipitationProbability: data.hourly.precipitation_probability?.[i] ?? 0,
+            windSpeed: data.hourly.wind_speed_10m?.[i] ?? 0,
+          }));
 
           const newWeather: WeatherData = {
             temperature: c.temperature_2m,
@@ -100,11 +118,11 @@ export function useWeather(lat?: number, lng?: number) {
             hasSevereWeather: severity !== "none",
             severityLevel: severity,
             alertMessage: getAlertMessage(code, wind, precip),
+            hourlyForecast: hourly,
           };
 
           setWeather(newWeather);
 
-          // Send push notification for severe weather (only once per severity change)
           if (newWeather.hasSevereWeather && lastAlertRef.current !== newWeather.severityLevel) {
             lastAlertRef.current = newWeather.severityLevel;
             const info = getWeatherInfo(code);
@@ -128,7 +146,6 @@ export function useWeather(lat?: number, lng?: number) {
     };
 
     fetchWeather();
-    // Refresh every 10 minutes
     const interval = setInterval(fetchWeather, 10 * 60 * 1000);
 
     return () => {
