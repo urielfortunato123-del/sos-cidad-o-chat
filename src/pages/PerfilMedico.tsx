@@ -85,7 +85,7 @@ const PerfilMedico = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6 max-w-lg">
+      <main className="container mx-auto px-4 py-6 pb-24 max-w-lg">
         {showQR ? (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
