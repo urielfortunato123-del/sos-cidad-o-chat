@@ -8,7 +8,6 @@ import Install from "./pages/Install";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 import EmergenciaVeicular from "./pages/EmergenciaVeicular";
-import OcrPage from "./pages/OcrPage";
 import AlertaDesastre from "./pages/AlertaDesastre";
 import PerfilMedico from "./pages/PerfilMedico";
 import MapaSeguranca from "./pages/MapaSeguranca";
@@ -34,7 +33,6 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/emergencia-veicular" element={<EmergenciaVeicular />} />
-          <Route path="/ocr" element={<OcrPage />} />
           <Route path="/alerta-desastre" element={<AlertaDesastre />} />
           <Route path="/perfil-medico" element={<PerfilMedico />} />
           <Route path="/mapa-seguranca" element={<MapaSeguranca />} />

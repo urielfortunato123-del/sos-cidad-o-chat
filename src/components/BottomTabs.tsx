@@ -1,12 +1,13 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, Map, AlertTriangle, FileText, UserCircle } from "lucide-react";
+import { Home, Map, AlertTriangle, FileText, UserCircle, Construction } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const tabs = [
-  { path: "/", icon: Home, label: "Início", emoji: "🏠" },
-  { path: "/mapa-seguranca", icon: Map, label: "Mapa", emoji: "🗺️" },
-  { path: "/alerta-desastre", icon: AlertTriangle, label: "Alerta", emoji: "⚠️" },
-  { path: "/reportar", icon: FileText, label: "Reportar", emoji: "📝" },
-  { path: "/perfil-medico", icon: UserCircle, label: "Perfil", emoji: "👤" },
+  { path: "/", icon: Home, label: "Início", emoji: "🏠", disabled: false },
+  { path: "/mapa-seguranca", icon: Map, label: "Mapa", emoji: "🗺️", disabled: false },
+  { path: "/alerta-desastre", icon: AlertTriangle, label: "Alerta", emoji: "⚠️", disabled: false },
+  { path: "/reportar", icon: FileText, label: "Reportar", emoji: "🚧", disabled: true },
+  { path: "/perfil-medico", icon: UserCircle, label: "Perfil", emoji: "👤", disabled: false },
 ];
 
 const HIDDEN_ROUTES = ["/auth", "/admin", "/install", "/qr"];
@@ -14,8 +15,8 @@ const HIDDEN_ROUTES = ["/auth", "/admin", "/install", "/qr"];
 const BottomTabs = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
-  // Hide on certain routes
   if (HIDDEN_ROUTES.some(r => location.pathname.startsWith(r))) return null;
 
   return (
@@ -29,18 +30,31 @@ const BottomTabs = () => {
           return (
             <button
               key={tab.path}
-              onClick={() => navigate(tab.path)}
-              className={`flex flex-col items-center justify-center gap-0.5 px-3 py-1 rounded-xl transition-all min-w-[60px] ${
-                isActive 
-                  ? "text-primary scale-105" 
-                  : "text-muted-foreground hover:text-foreground"
+              onClick={() => {
+                if (tab.disabled) {
+                  toast({ title: "🚧 Em desenvolvimento", description: "Esta funcionalidade estará disponível em breve!" });
+                  return;
+                }
+                navigate(tab.path);
+              }}
+              className={`flex flex-col items-center justify-center gap-0.5 px-3 py-1 rounded-xl transition-all min-w-[60px] relative ${
+                tab.disabled
+                  ? "text-muted-foreground/40 cursor-not-allowed"
+                  : isActive 
+                    ? "text-primary scale-105" 
+                    : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <tab.icon className={`w-5 h-5 ${isActive ? "text-primary" : ""}`} />
-              <span className={`text-[10px] font-bold ${isActive ? "text-primary" : ""}`}>
+              <tab.icon className={`w-5 h-5 ${tab.disabled ? "text-muted-foreground/40" : isActive ? "text-primary" : ""}`} />
+              <span className={`text-[10px] font-bold ${tab.disabled ? "text-muted-foreground/40" : isActive ? "text-primary" : ""}`}>
                 {tab.label}
               </span>
-              {isActive && (
+              {tab.disabled && (
+                <span className="absolute -top-1 -right-0 text-[8px] bg-warning text-warning-foreground rounded-full px-1 font-bold">
+                  EM BREVE
+                </span>
+              )}
+              {isActive && !tab.disabled && (
                 <div className="w-5 h-0.5 bg-primary rounded-full mt-0.5" />
               )}
             </button>
