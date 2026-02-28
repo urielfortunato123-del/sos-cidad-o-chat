@@ -209,9 +209,8 @@ const MapaSeguranca = () => {
 
   const fetchSafePlaces = async (lat: number, lng: number) => {
     try {
-      // Use edge function via URL with query params
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-      const url = `https://${projectId}.supabase.co/functions/v1/fetch-pois?lat=${lat}&lng=${lng}&radius=5000`;
+      const url = `https://${projectId}.supabase.co/functions/v1/fetch-pois?lat=${lat}&lng=${lng}&radius=10000`;
       const response = await fetch(url, {
         headers: { 'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
       });
@@ -219,6 +218,7 @@ const MapaSeguranca = () => {
       if (!response.ok) throw new Error('Failed to fetch POIs');
       
       const data = await response.json();
+      console.log(`Fetched ${data.count} POIs from edge function`);
       const results: MapPlace[] = (data.items || []).map((item: any) => ({
         id: item.id,
         name: item.name,
@@ -232,33 +232,45 @@ const MapaSeguranca = () => {
         address: item.address,
       }));
       setSafePlaces(results);
-    } catch {
-      // Fallback to direct Overpass if edge function fails
+    } catch (err) {
+      console.error('Edge function failed, using Overpass fallback:', err);
       try {
-        const radius = 5000;
-        const query = `[out:json][timeout:15];(node["amenity"="school"](around:${radius},${lat},${lng});node["amenity"~"hospital|clinic"](around:${radius},${lat},${lng});node["amenity"="place_of_worship"](around:${radius},${lat},${lng});node["amenity"="fire_station"](around:${radius},${lat},${lng});node["amenity"="police"](around:${radius},${lat},${lng});node["amenity"~"community_centre|social_facility"](around:${radius},${lat},${lng});node["emergency"="assembly_point"](around:${radius},${lat},${lng}););out body 80;`;
+        const radius = 10000;
+        const query = `[out:json][timeout:25];(
+          nwr["amenity"="school"](around:${radius},${lat},${lng});
+          nwr["amenity"~"hospital|clinic|doctors"](around:${radius},${lat},${lng});
+          nwr["healthcare"~"hospital|clinic|centre"](around:${radius},${lat},${lng});
+          nwr["amenity"="place_of_worship"](around:${radius},${lat},${lng});
+          nwr["amenity"="fire_station"](around:${radius},${lat},${lng});
+          nwr["amenity"="police"](around:${radius},${lat},${lng});
+          nwr["amenity"~"community_centre|social_facility|shelter"](around:${radius},${lat},${lng});
+          nwr["emergency"="assembly_point"](around:${radius},${lat},${lng});
+        );out center 300;`;
         const res = await fetch("https://overpass-api.de/api/interpreter", {
           method: "POST", body: `data=${encodeURIComponent(query)}`,
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
         });
         const data = await res.json();
         const results: MapPlace[] = (data.elements || []).map((el: any) => {
-          const amenity = el.tags?.amenity || el.tags?.emergency || "";
+          const elLat = el.lat || el.center?.lat;
+          const elLng = el.lon || el.center?.lon;
+          if (!elLat || !elLng) return null;
+          const amenity = el.tags?.amenity || el.tags?.emergency || el.tags?.healthcare || "";
           let type = "shelter", emoji = "🏛️";
-          if (amenity === "school") { type = "school"; emoji = "🏫"; }
-          else if (["hospital", "clinic"].includes(amenity)) { type = "hospital"; emoji = "🏥"; }
+          if (amenity === "school" || amenity === "kindergarten") { type = "school"; emoji = "🏫"; }
+          else if (["hospital", "clinic", "doctors", "centre"].includes(amenity)) { type = "hospital"; emoji = "🏥"; }
           else if (amenity === "place_of_worship") { type = "church"; emoji = "⛪"; }
           else if (amenity === "fire_station") { type = "fire_station"; emoji = "🚒"; }
           else if (amenity === "police") { type = "police"; emoji = "🚔"; }
           return {
             id: el.id.toString(),
             name: el.tags?.name || `${emoji} ${type}`,
-            type, layer: "safe" as const, lat: el.lat, lng: el.lon,
-            distance: getDistance(lat, lng, el.lat, el.lon), emoji,
+            type, layer: "safe" as const, lat: elLat, lng: elLng,
+            distance: getDistance(lat, lng, elLat, elLng), emoji,
           };
-        });
-        results.sort((a, b) => (a.distance || 0) - (b.distance || 0));
-        setSafePlaces(results);
+        }).filter(Boolean);
+        results.sort((a: any, b: any) => (a.distance || 0) - (b.distance || 0));
+        setSafePlaces(results as MapPlace[]);
       } catch {
         toast({ title: "Erro ao buscar locais", description: "Tente novamente.", variant: "destructive" });
       }
