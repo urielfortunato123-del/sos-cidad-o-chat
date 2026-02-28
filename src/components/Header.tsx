@@ -1,9 +1,13 @@
-import { Shield, Menu, HandHeart } from "lucide-react";
+import { Shield, Menu, HandHeart, Bell, BellRing } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { useNotifications } from "@/hooks/useNotifications";
+import { useToast } from "@/hooks/use-toast";
 
 const Header = ({ onDonateClick }: { onDonateClick?: () => void }) => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { isSupported, permission, requestPermission } = useNotifications();
+  const { toast } = useToast();
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
@@ -16,6 +20,13 @@ const Header = ({ onDonateClick }: { onDonateClick?: () => void }) => {
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
     setMenuOpen(false);
+  };
+
+  const handleEnableNotifications = async () => {
+    const granted = await requestPermission();
+    if (granted) {
+      toast({ title: "🔔 Notificações ativadas!", description: "Você receberá alertas de emergência e desastres." });
+    }
   };
 
   return (
@@ -31,14 +42,33 @@ const Header = ({ onDonateClick }: { onDonateClick?: () => void }) => {
           </div>
         </div>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setMenuOpen(!menuOpen)}
-          className="md:hidden"
-        >
-          <Menu className="w-5 h-5" />
-        </Button>
+        <div className="flex items-center gap-1">
+          {isSupported && permission !== "granted" && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleEnableNotifications}
+              className="relative"
+              title="Ativar notificações"
+            >
+              <Bell className="w-5 h-5 text-warning" />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-warning rounded-full animate-pulse" />
+            </Button>
+          )}
+          {isSupported && permission === "granted" && (
+            <Button variant="ghost" size="icon" disabled className="opacity-60" title="Notificações ativadas">
+              <BellRing className="w-5 h-5 text-success" />
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="md:hidden"
+          >
+            <Menu className="w-5 h-5" />
+          </Button>
+        </div>
 
         <nav className="hidden md:flex items-center gap-6">
           <button 
