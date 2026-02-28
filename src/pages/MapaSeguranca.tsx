@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useAccessLog } from "@/hooks/useAccessLog";
 import { supabase } from "@/integrations/supabase/client";
+import { useWeather, getWeatherInfo } from "@/hooks/useWeather";
 import "leaflet/dist/leaflet.css";
 
 // ─── Types ──────────────────────────────────────────────
@@ -103,6 +104,7 @@ const MapaSeguranca = () => {
   const [userPos, setUserPos] = useState<[number, number] | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("safe");
+  const { weather } = useWeather(userPos?.[0], userPos?.[1]);
 
   // Safe places
   const [safePlaces, setSafePlaces] = useState<MapPlace[]>([]);
@@ -323,8 +325,25 @@ const MapaSeguranca = () => {
           </Button>
           <Shield className="w-6 h-6" />
           <h1 className="text-lg font-bold flex-1">Mapa de Segurança</h1>
+          {weather && (
+            <div className="flex items-center gap-1 text-xs font-semibold">
+              <span>{getWeatherInfo(weather.weatherCode).emoji}</span>
+              <span>{Math.round(weather.temperature)}°C</span>
+            </div>
+          )}
         </div>
       </header>
+
+      {/* Weather Alert Banner */}
+      {weather?.hasSevereWeather && (
+        <div className={`px-4 py-2 text-center text-sm font-bold ${
+          weather.severityLevel === "extreme" ? "bg-destructive text-destructive-foreground animate-pulse" :
+          weather.severityLevel === "severe" ? "bg-destructive/80 text-destructive-foreground" :
+          "bg-warning/80 text-warning-foreground"
+        }`}>
+          {weather.alertMessage}
+        </div>
+      )}
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">

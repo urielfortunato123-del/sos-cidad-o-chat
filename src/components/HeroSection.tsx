@@ -7,6 +7,7 @@ import { getLocationWithAddress } from "@/utils/geolocation";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import WeatherBadge from "@/components/WeatherBadge";
 
 interface HeroSectionProps {
   onStartChat: (cep: string, cityInfo?: { city: string; state: string }) => void;
@@ -99,9 +100,12 @@ const HeroSection = ({ onStartChat }: HeroSectionProps) => {
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-4"
         >
-          <div className="inline-flex items-center gap-2 bg-primary-foreground/10 backdrop-blur-sm rounded-full px-4 py-2">
-            <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
-            <span className="text-sm font-medium text-primary-foreground/90">Disponível 24 horas</span>
+          <div className="inline-flex items-center gap-3 flex-wrap justify-center">
+            <div className="inline-flex items-center gap-2 bg-primary-foreground/10 backdrop-blur-sm rounded-full px-4 py-2">
+              <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
+              <span className="text-sm font-medium text-primary-foreground/90">Disponível 24 horas</span>
+            </div>
+            <WeatherBadge />
           </div>
         </motion.div>
 
