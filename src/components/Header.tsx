@@ -1,4 +1,4 @@
-import { Shield, Menu, HandHeart, Bell, BellRing } from "lucide-react";
+import { Shield, Menu, HandHeart, Bell, BellRing, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -27,6 +27,23 @@ const Header = ({ onDonateClick }: { onDonateClick?: () => void }) => {
     if (granted) {
       toast({ title: "🔔 Notificações ativadas!", description: "Você receberá alertas de emergência e desastres." });
     }
+  };
+
+  const handleShare = async () => {
+    const shareData = {
+      title: "SOS Cidadão",
+      text: "🆘 SOS Cidadão — Sistema Nacional de Emergência. Tenha acesso rápido a serviços de emergência, alertas de desastre e muito mais!",
+      url: window.location.origin,
+    };
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch {}
+    } else {
+      await navigator.clipboard.writeText(shareData.url);
+      toast({ title: "📋 Link copiado!", description: "Compartilhe com familiares e amigos." });
+    }
+    setMenuOpen(false);
   };
 
   return (
@@ -120,6 +137,10 @@ const Header = ({ onDonateClick }: { onDonateClick?: () => void }) => {
             >
               Sobre
             </button>
+            <Button variant="outline" size="lg" className="gap-2" onClick={handleShare}>
+              <Share2 className="w-4 h-4" />
+              Compartilhar App
+            </Button>
             <Button variant="outline" size="lg" className="gap-2 border-primary/30 text-primary" onClick={() => { onDonateClick?.(); setMenuOpen(false); }}>
               <HandHeart className="w-4 h-4" />
               Ajude o Desenvolvedor
