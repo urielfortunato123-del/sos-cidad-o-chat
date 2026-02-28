@@ -1,4 +1,4 @@
-import { MapPin, Search, Loader2, Navigation, AlertTriangle, Phone, Heart, Shield, Flame, HandHeart, Car, FileText, MapPinned, Users, UserCircle } from "lucide-react";
+import { MapPin, Search, Loader2, Navigation, AlertTriangle, Phone, Heart, Shield, Flame, HandHeart, Car, MapPinned, Users, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
@@ -207,13 +207,12 @@ const HeroSection = ({ onStartChat }: HeroSectionProps) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
-          className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-w-lg mx-auto w-full"
+          className="grid grid-cols-3 gap-2 max-w-lg mx-auto w-full"
         >
           {[
             { label: "Veicular", emoji: "🚗", icon: Car, path: "/emergencia-veicular" },
             { label: "Mapa Segurança", emoji: "🗺️", icon: MapPinned, path: "/mapa-seguranca" },
             { label: "Perfil Médico", emoji: "🏥", icon: UserCircle, path: "/perfil-medico" },
-            { label: "OCR / Leitor", emoji: "📄", icon: FileText, path: "/ocr" },
           ].map((item) => (
             <button
               key={item.path}
