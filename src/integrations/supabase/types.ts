@@ -143,6 +143,42 @@ export type Database = {
         }
         Relationships: []
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          city: string | null
+          created_at: string | null
+          endpoint: string
+          id: string
+          lat: number | null
+          lng: number | null
+          p256dh: string
+          state: string | null
+        }
+        Insert: {
+          auth: string
+          city?: string | null
+          created_at?: string | null
+          endpoint: string
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          p256dh: string
+          state?: string | null
+        }
+        Update: {
+          auth?: string
+          city?: string | null
+          created_at?: string | null
+          endpoint?: string
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          p256dh?: string
+          state?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
