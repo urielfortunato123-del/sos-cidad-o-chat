@@ -9,6 +9,10 @@ import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 import EmergenciaVeicular from "./pages/EmergenciaVeicular";
 import OcrPage from "./pages/OcrPage";
+import AlertaDesastre from "./pages/AlertaDesastre";
+import PerfilMedico from "./pages/PerfilMedico";
+import MapaAbrigos from "./pages/MapaAbrigos";
+import ComunidadeSOS from "./pages/ComunidadeSOS";
 import VehicleFloatingButton from "./components/VehicleFloatingButton";
 import NotFound from "./pages/NotFound";
 
@@ -28,6 +32,10 @@ const App = () => (
           <Route path="/admin" element={<Admin />} />
           <Route path="/emergencia-veicular" element={<EmergenciaVeicular />} />
           <Route path="/ocr" element={<OcrPage />} />
+          <Route path="/alerta-desastre" element={<AlertaDesastre />} />
+          <Route path="/perfil-medico" element={<PerfilMedico />} />
+          <Route path="/mapa-abrigos" element={<MapaAbrigos />} />
+          <Route path="/comunidade-sos" element={<ComunidadeSOS />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

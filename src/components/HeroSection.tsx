@@ -1,60 +1,52 @@
-import { MapPin, Search, Loader2, Navigation } from "lucide-react";
+import { MapPin, Search, Loader2, Navigation, AlertTriangle, Phone, Heart, Shield, Flame, HandHeart, Car, FileText, MapPinned, Users, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { smartLookup } from "@/utils/addressLookup";
 import { getLocationWithAddress } from "@/utils/geolocation";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 
 interface HeroSectionProps {
   onStartChat: (cep: string, cityInfo?: { city: string; state: string }) => void;
 }
+
+const emergencyButtons = [
+  { number: "190", label: "Polícia", emoji: "🚓", icon: Shield, bgClass: "bg-primary", hoverClass: "hover:bg-primary/90" },
+  { number: "192", label: "SAMU", emoji: "🚑", icon: Heart, bgClass: "bg-accent", hoverClass: "hover:bg-accent/90" },
+  { number: "193", label: "Bombeiros", emoji: "🚒", icon: Flame, bgClass: "bg-warning", hoverClass: "hover:bg-warning/90" },
+  { number: "188", label: "CVV", emoji: "🧠", icon: HandHeart, bgClass: "bg-success", hoverClass: "hover:bg-success/90" },
+];
 
 const HeroSection = ({ onStartChat }: HeroSectionProps) => {
   const [searchValue, setSearchValue] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!searchValue.trim()) {
-      toast({
-        title: "Campo vazio",
-        description: "Digite um CEP, cidade ou endereço para continuar.",
-        variant: "destructive",
-      });
+      toast({ title: "Campo vazio", description: "Digite um CEP, cidade ou endereço.", variant: "destructive" });
       return;
     }
-
     setIsSearching(true);
-    
     try {
       const result = await smartLookup(searchValue);
-      
       if (result) {
         onStartChat(result.cep, { city: result.city, state: result.state });
       } else {
-        // Tenta como CEP direto se tiver 8 dígitos
         const cleanNumbers = searchValue.replace(/\D/g, "");
         if (cleanNumbers.length === 8) {
           onStartChat(searchValue, undefined);
         } else {
-          toast({
-            title: "Localização não encontrada",
-            description: "Tente digitar o CEP completo (ex: 01310-100) ou cidade com estado (ex: São Paulo, SP)",
-            variant: "destructive",
-          });
+          toast({ title: "Não encontrado", description: "Tente o CEP completo ou cidade com estado.", variant: "destructive" });
         }
       }
-    } catch (error) {
-      console.error("Erro na busca:", error);
-      toast({
-        title: "Erro na busca",
-        description: "Não foi possível localizar o endereço. Tente novamente.",
-        variant: "destructive",
-      });
+    } catch {
+      toast({ title: "Erro na busca", description: "Tente novamente.", variant: "destructive" });
     } finally {
       setIsSearching(false);
     }
@@ -62,21 +54,13 @@ const HeroSection = ({ onStartChat }: HeroSectionProps) => {
 
   const handleGetLocation = async () => {
     setIsGettingLocation(true);
-    
     try {
       const location = await getLocationWithAddress();
-      
       if (location.city && location.state) {
-        toast({
-          title: "📍 Localização encontrada!",
-          description: `${location.city}, ${location.state}`,
-        });
-        
-        // Se temos CEP, usa ele, senão usa cidade/estado para buscar
+        toast({ title: "📍 Localização encontrada!", description: `${location.city}, ${location.state}` });
         if (location.cep && location.cep.length >= 5) {
           onStartChat(location.cep.padEnd(8, '0'), { city: location.city, state: location.state });
         } else {
-          // Tenta buscar um CEP da cidade
           const result = await smartLookup(`${location.city}, ${location.state}`);
           if (result) {
             onStartChat(result.cep, { city: result.city, state: result.state });
@@ -85,114 +69,163 @@ const HeroSection = ({ onStartChat }: HeroSectionProps) => {
           }
         }
       } else {
-        toast({
-          title: "Localização parcial",
-          description: "Não foi possível identificar sua cidade. Por favor, digite manualmente.",
-          variant: "destructive",
-        });
+        toast({ title: "Localização parcial", description: "Digite manualmente.", variant: "destructive" });
       }
     } catch (error) {
-      console.error("Erro ao obter localização:", error);
-      toast({
-        title: "Erro de localização",
-        description: error instanceof Error ? error.message : "Não foi possível obter sua localização.",
-        variant: "destructive",
-      });
+      toast({ title: "Erro de localização", description: error instanceof Error ? error.message : "Não foi possível obter sua localização.", variant: "destructive" });
     } finally {
       setIsGettingLocation(false);
     }
   };
 
+  const handleCall = (number: string) => {
+    window.location.href = `tel:${number}`;
+  };
+
   const isLoading = isSearching || isGettingLocation;
 
   return (
-    <section className="relative min-h-[60vh] flex items-center justify-center gradient-hero overflow-hidden">
+    <section className="relative min-h-[85vh] flex flex-col gradient-hero overflow-hidden">
       {/* Background pattern */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-20 left-10 w-72 h-72 bg-primary-foreground rounded-full blur-3xl" />
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-accent rounded-full blur-3xl" />
       </div>
 
-      <div className="container mx-auto px-4 py-20 relative z-10">
-        <div className="max-w-2xl mx-auto text-center animate-slide-up">
-          <div className="inline-flex items-center gap-2 bg-primary-foreground/10 backdrop-blur-sm rounded-full px-4 py-2 mb-6">
+      <div className="container mx-auto px-4 py-8 relative z-10 flex-1 flex flex-col">
+        {/* Header badge */}
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-4"
+        >
+          <div className="inline-flex items-center gap-2 bg-primary-foreground/10 backdrop-blur-sm rounded-full px-4 py-2">
             <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
-            <span className="text-sm font-medium text-primary-foreground/90">
-              Disponível 24 horas
-            </span>
+            <span className="text-sm font-medium text-primary-foreground/90">Disponível 24 horas</span>
           </div>
+        </motion.div>
 
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-primary-foreground mb-6 leading-tight">
-            Assistência Imediata
-            <br />
-            <span className="text-accent">ao Seu Alcance</span>
+        {/* Title */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="text-center mb-6"
+        >
+          <h1 className="text-3xl md:text-5xl font-extrabold text-primary-foreground mb-2 leading-tight">
+            🆘 SOS Cidadão
           </h1>
-
-          <p className="text-lg md:text-xl text-primary-foreground/80 mb-10 max-w-lg mx-auto">
-            Conecte-se aos serviços essenciais da sua região. 
-            Falta de energia, emergências médicas, prefeitura e muito mais.
+          <p className="text-base md:text-lg text-primary-foreground/70 max-w-md mx-auto">
+            Sistema Nacional de Emergência — Proteção para famílias brasileiras
           </p>
+        </motion.div>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4 max-w-md mx-auto">
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1">
-                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <Input
-                  type="text"
-                  placeholder="CEP, cidade ou endereço"
-                  value={searchValue}
-                  onChange={(e) => setSearchValue(e.target.value)}
-                  className="pl-12 h-14 text-lg bg-card border-border rounded-xl shadow-medium"
-                  disabled={isLoading}
-                />
-              </div>
-              <Button 
-                type="submit" 
-                variant="emergency" 
-                size="xl"
-                className="shadow-emergency"
-                disabled={isLoading || !searchValue.trim()}
-              >
-                {isSearching ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <Search className="w-5 h-5" />
-                )}
-                {isSearching ? "Buscando..." : "Iniciar"}
-              </Button>
-            </div>
-
-            {/* Botão de geolocalização */}
-            <Button
-              type="button"
-              variant="outline"
-              size="lg"
-              onClick={handleGetLocation}
-              disabled={isLoading}
-              className="bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/20 hover:text-primary-foreground"
+        {/* Emergency Buttons — BIG & Accessible */}
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2 }}
+          className="grid grid-cols-2 gap-3 max-w-md mx-auto w-full mb-6"
+        >
+          {emergencyButtons.map((btn, i) => (
+            <motion.button
+              key={btn.number}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 + i * 0.05 }}
+              onClick={() => handleCall(btn.number)}
+              className={`${btn.bgClass} ${btn.hoverClass} text-white rounded-2xl p-4 flex flex-col items-center justify-center gap-1 shadow-lg active:scale-95 transition-all min-h-[100px]`}
             >
-              {isGettingLocation ? (
-                <Loader2 className="w-5 h-5 animate-spin mr-2" />
-              ) : (
-                <Navigation className="w-5 h-5 mr-2" />
-              )}
-              {isGettingLocation ? "Obtendo localização..." : "Usar minha localização"}
-            </Button>
-          </form>
+              <span className="text-3xl">{btn.emoji}</span>
+              <span className="text-2xl md:text-3xl font-black">{btn.number}</span>
+              <span className="text-xs font-semibold opacity-90">{btn.label}</span>
+            </motion.button>
+          ))}
+        </motion.div>
 
-          <p className="text-sm text-primary-foreground/60 mt-4">
-            Toque em "Usar minha localização" ou digite manualmente
-          </p>
-        </div>
+        {/* Quick Action Buttons */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="grid grid-cols-2 gap-3 max-w-md mx-auto w-full mb-6"
+        >
+          <button
+            onClick={() => navigate("/alerta-desastre")}
+            className="bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-2xl p-4 flex flex-col items-center justify-center gap-2 shadow-lg active:scale-95 transition-all animate-pulse-emergency min-h-[80px]"
+          >
+            <AlertTriangle className="w-7 h-7" />
+            <span className="text-sm font-bold">⚠️ ALERTA DESASTRE</span>
+          </button>
+          <button
+            onClick={handleGetLocation}
+            disabled={isGettingLocation}
+            className="bg-primary-foreground/15 hover:bg-primary-foreground/25 backdrop-blur-sm text-primary-foreground border border-primary-foreground/20 rounded-2xl p-4 flex flex-col items-center justify-center gap-2 shadow-lg active:scale-95 transition-all min-h-[80px]"
+          >
+            {isGettingLocation ? (
+              <Loader2 className="w-7 h-7 animate-spin" />
+            ) : (
+              <Navigation className="w-7 h-7" />
+            )}
+            <span className="text-sm font-bold">📍 Enviar Localização</span>
+          </button>
+        </motion.div>
+
+        {/* Search bar */}
+        <motion.form 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          onSubmit={handleSubmit} 
+          className="max-w-md mx-auto w-full mb-6"
+        >
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="CEP, cidade ou endereço"
+                value={searchValue}
+                onChange={(e) => setSearchValue(e.target.value)}
+                className="pl-10 h-12 text-base bg-card border-border rounded-xl shadow-medium"
+                disabled={isLoading}
+              />
+            </div>
+            <Button type="submit" variant="emergency" className="h-12 px-4 rounded-xl" disabled={isLoading || !searchValue.trim()}>
+              {isSearching ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
+            </Button>
+          </div>
+        </motion.form>
+
+        {/* Feature links */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6 }}
+          className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-w-lg mx-auto w-full"
+        >
+          {[
+            { label: "Veicular", emoji: "🚗", icon: Car, path: "/emergencia-veicular" },
+            { label: "Abrigos", emoji: "🏠", icon: MapPinned, path: "/mapa-abrigos" },
+            { label: "Perfil Médico", emoji: "🏥", icon: UserCircle, path: "/perfil-medico" },
+            { label: "Comunidade", emoji: "👥", icon: Users, path: "/comunidade-sos" },
+          ].map((item) => (
+            <button
+              key={item.path}
+              onClick={() => navigate(item.path)}
+              className="bg-primary-foreground/10 hover:bg-primary-foreground/20 backdrop-blur-sm text-primary-foreground rounded-xl p-3 flex flex-col items-center gap-1 transition-all active:scale-95 border border-primary-foreground/10"
+            >
+              <span className="text-lg">{item.emoji}</span>
+              <span className="text-xs font-semibold">{item.label}</span>
+            </button>
+          ))}
+        </motion.div>
       </div>
 
       {/* Bottom wave */}
-      <div className="absolute bottom-0 left-0 right-0">
-        <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path 
-            d="M0 120L60 110C120 100 240 80 360 75C480 70 600 80 720 85C840 90 960 90 1080 85C1200 80 1320 70 1380 65L1440 60V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0Z" 
-            className="fill-background"
-          />
+      <div className="relative">
+        <svg viewBox="0 0 1440 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M0 80L60 73C120 67 240 53 360 48C480 43 600 48 720 53C840 58 960 63 1080 60C1200 57 1320 47 1380 42L1440 37V80H0Z" className="fill-background" />
         </svg>
       </div>
     </section>
