@@ -206,9 +206,9 @@ const HeroSection = ({ onStartChat }: HeroSectionProps) => {
         >
           {[
             { label: "Veicular", emoji: "🚗", icon: Car, path: "/emergencia-veicular" },
-            { label: "Abrigos", emoji: "🏠", icon: MapPinned, path: "/mapa-abrigos" },
+            { label: "Mapa Segurança", emoji: "🗺️", icon: MapPinned, path: "/mapa-seguranca" },
             { label: "Perfil Médico", emoji: "🏥", icon: UserCircle, path: "/perfil-medico" },
-            { label: "Comunidade", emoji: "👥", icon: Users, path: "/comunidade-sos" },
+            { label: "OCR / Leitor", emoji: "📄", icon: FileText, path: "/ocr" },
           ].map((item) => (
             <button
               key={item.path}

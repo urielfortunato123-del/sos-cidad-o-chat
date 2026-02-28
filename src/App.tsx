@@ -11,8 +11,7 @@ import EmergenciaVeicular from "./pages/EmergenciaVeicular";
 import OcrPage from "./pages/OcrPage";
 import AlertaDesastre from "./pages/AlertaDesastre";
 import PerfilMedico from "./pages/PerfilMedico";
-import MapaAbrigos from "./pages/MapaAbrigos";
-import ComunidadeSOS from "./pages/ComunidadeSOS";
+import MapaSeguranca from "./pages/MapaSeguranca";
 import VehicleFloatingButton from "./components/VehicleFloatingButton";
 import NotFound from "./pages/NotFound";
 
@@ -34,8 +33,9 @@ const App = () => (
           <Route path="/ocr" element={<OcrPage />} />
           <Route path="/alerta-desastre" element={<AlertaDesastre />} />
           <Route path="/perfil-medico" element={<PerfilMedico />} />
-          <Route path="/mapa-abrigos" element={<MapaAbrigos />} />
-          <Route path="/comunidade-sos" element={<ComunidadeSOS />} />
+          <Route path="/mapa-seguranca" element={<MapaSeguranca />} />
+          <Route path="/mapa-abrigos" element={<MapaSeguranca />} />
+          <Route path="/comunidade-sos" element={<MapaSeguranca />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
