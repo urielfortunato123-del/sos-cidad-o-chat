@@ -5,13 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { getCurrentPosition } from "@/utils/geolocation";
-import { MapContainer, TileLayer, Marker, Popup, useMap, Circle } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, useMap, Circle } from "react-leaflet";
 import L from "leaflet";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useAccessLog } from "@/hooks/useAccessLog";
 import { supabase } from "@/integrations/supabase/client";
 import { useWeather, getWeatherInfo } from "@/hooks/useWeather";
+import MapBottomSheet from "@/components/MapBottomSheet";
 import "leaflet/dist/leaflet.css";
 
 // ─── Types ──────────────────────────────────────────────
@@ -115,6 +116,9 @@ const MapaSeguranca = () => {
 
   // Realtime events (from database)
   const [realtimeEvents, setRealtimeEvents] = useState<MapPlace[]>([]);
+
+  // Bottom sheet
+  const [selectedPlace, setSelectedPlace] = useState<MapPlace | null>(null);
 
   // Modals
   const [showReportModal, setShowReportModal] = useState(false);
@@ -328,7 +332,7 @@ const MapaSeguranca = () => {
   const currentMarkers = activeTab === "safe" ? filteredSafe : activeTab === "danger" ? dangerZones : realtimeEvents;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col pb-16">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-primary text-primary-foreground shadow-lg">
         <div className="container mx-auto px-4 py-3 flex items-center gap-3">
@@ -423,9 +427,7 @@ const MapaSeguranca = () => {
               <MapContainer center={userPos} zoom={14} style={{ height: "100%", width: "100%" }} zoomControl={false}>
                 <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OSM" />
                 <RecenterMap position={userPos} />
-                <Marker position={userPos} icon={userIcon}>
-                  <Popup>📍 Você está aqui</Popup>
-                </Marker>
+                <Marker position={userPos} icon={userIcon} />
 
                 {/* Danger zone circles */}
                 {activeTab === "danger" && dangerZones.map(dz => (
@@ -435,21 +437,15 @@ const MapaSeguranca = () => {
 
                 {currentMarkers.map(place => (
                   <Marker key={place.id} position={[place.lat, place.lng]}
-                    icon={createIcon(place.emoji, iconColors[place.type] || "#6b7280", activeTab === "realtime" ? 30 + (place.severity || 3) * 4 : 36)}>
-                    <Popup>
-                      <div className="text-center">
-                        <strong>{place.emoji} {place.name}</strong>
-                        {place.distance != null && <><br /><span className="text-sm">{place.distance.toFixed(1)} km</span></>}
-                        {place.timestamp && <><br /><span className="text-xs text-gray-500">⏱ {timeAgo(place.timestamp)}</span></>}
-                        {place.layer === "safe" && (
-                          <><br /><button onClick={() => openNavigation(place.lat, place.lng)} className="text-blue-600 underline text-sm mt-1">Navegar →</button></>
-                        )}
-                      </div>
-                    </Popup>
-                  </Marker>
+                    icon={createIcon(place.emoji, iconColors[place.type] || "#6b7280", activeTab === "realtime" ? 30 + (place.severity || 3) * 4 : 36)}
+                    eventHandlers={{ click: () => setSelectedPlace(place) }}
+                  />
                 ))}
               </MapContainer>
             </div>
+
+            {/* Bottom Sheet */}
+            <MapBottomSheet item={selectedPlace} onClose={() => setSelectedPlace(null)} />
 
             {/* List */}
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
@@ -458,7 +454,7 @@ const MapaSeguranca = () => {
                   <h3 className="font-bold text-foreground text-base">{filteredSafe.length} lugares seguros</h3>
                   {filteredSafe.slice(0, 20).map(place => (
                     <motion.button key={place.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-                      onClick={() => openNavigation(place.lat, place.lng)}
+                      onClick={() => setSelectedPlace(place)}
                       className="w-full bg-card rounded-xl p-3 border border-border shadow-soft flex items-center gap-3 text-left active:scale-[0.98] transition-all">
                       <span className="text-2xl">{place.emoji}</span>
                       <div className="flex-1 min-w-0">

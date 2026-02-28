@@ -12,7 +12,11 @@ import OcrPage from "./pages/OcrPage";
 import AlertaDesastre from "./pages/AlertaDesastre";
 import PerfilMedico from "./pages/PerfilMedico";
 import MapaSeguranca from "./pages/MapaSeguranca";
+import ReportarEvento from "./pages/ReportarEvento";
+import QrResponder from "./pages/QrResponder";
+import Diagnostico from "./pages/Diagnostico";
 import VehicleFloatingButton from "./components/VehicleFloatingButton";
+import BottomTabs from "./components/BottomTabs";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,8 +40,12 @@ const App = () => (
           <Route path="/mapa-seguranca" element={<MapaSeguranca />} />
           <Route path="/mapa-abrigos" element={<MapaSeguranca />} />
           <Route path="/comunidade-sos" element={<MapaSeguranca />} />
+          <Route path="/reportar" element={<ReportarEvento />} />
+          <Route path="/qr/:token" element={<QrResponder />} />
+          <Route path="/diagnostico" element={<Diagnostico />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
+        <BottomTabs />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
