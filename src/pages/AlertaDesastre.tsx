@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, CloudRain, Mountain, Zap, Car, Heart, Navigation, Phone, MessageSquare, Loader2, Share2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, CloudRain, Mountain, Zap, Car, Heart, Navigation, Phone, MessageSquare, Loader2, Share2, AlertTriangle, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { getCurrentPosition } from "@/utils/geolocation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAccessLog } from "@/hooks/useAccessLog";
+import { useNotifications } from "@/hooks/useNotifications";
 
 const disasterTypes = [
   { id: "enchente", label: "Enchente", emoji: "🌧️", icon: CloudRain, color: "bg-primary", description: "Alagamento ou inundação na região" },
@@ -19,10 +20,18 @@ const AlertaDesastre = () => {
   useAccessLog('/alerta-desastre');
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { requestPermission, sendDisasterAlert, permission } = useNotifications();
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [locationSent, setLocationSent] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+
+  // Request notification permission on mount
+  useEffect(() => {
+    if (permission === "default") {
+      requestPermission();
+    }
+  }, []);
 
   const handleDisasterSelect = async (typeId: string) => {
     setSelectedType(typeId);
@@ -43,6 +52,9 @@ const AlertaDesastre = () => {
         title: "📍 Localização obtida!",
         description: "Sua localização foi capturada com sucesso.",
       });
+
+      // Send push notification
+      sendDisasterAlert(disasterType?.label || "Emergência", disasterType?.emoji || "🆘", loc);
 
       // Show action buttons
       setTimeout(() => {

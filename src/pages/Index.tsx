@@ -9,6 +9,7 @@ import EmergencyFloatingButton from "@/components/EmergencyFloatingButton";
 import BackgroundMusic from "@/components/BackgroundMusic";
 import FeedbackModal from "@/components/FeedbackModal";
 import DonationModal from "@/components/DonationModal";
+import NotificationBanner from "@/components/NotificationBanner";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { getContactsByCep, CityContacts, emergencyNumbers } from "@/utils/cityContacts";
 import { useToast } from "@/hooks/use-toast";
@@ -84,6 +85,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header onDonateClick={() => setDonationOpen(true)} />
+      <NotificationBanner />
       <EmergencyFloatingButton />
       <BackgroundMusic />
       <FeedbackModal />

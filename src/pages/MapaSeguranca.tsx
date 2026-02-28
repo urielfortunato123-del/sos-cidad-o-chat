@@ -8,6 +8,7 @@ import { getCurrentPosition } from "@/utils/geolocation";
 import { MapContainer, TileLayer, Marker, Popup, useMap, Circle } from "react-leaflet";
 import L from "leaflet";
 import { motion, AnimatePresence } from "framer-motion";
+import { useNotifications } from "@/hooks/useNotifications";
 import { useAccessLog } from "@/hooks/useAccessLog";
 import "leaflet/dist/leaflet.css";
 
@@ -95,6 +96,7 @@ const MapaSeguranca = () => {
   useAccessLog("/mapa-seguranca");
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { sendDisasterAlert, requestPermission, permission } = useNotifications();
   const [userPos, setUserPos] = useState<[number, number] | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("safe");
@@ -207,6 +209,8 @@ const MapaSeguranca = () => {
       localStorage.setItem(STORAGE_KEY_REALTIME, JSON.stringify(updated));
     }
     setShowReportModal(false);
+    // Send push notification for the report
+    sendDisasterAlert(t.label, t.emoji, { lat: userPos[0], lng: userPos[1] });
     toast({ title: `${t.emoji} Marcação registrada!`, description: `${t.label} adicionado ao mapa.` });
   };
 
