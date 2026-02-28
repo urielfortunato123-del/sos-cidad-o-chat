@@ -7,7 +7,7 @@ import ContactsModal from "@/components/ContactsModal";
 import Footer from "@/components/Footer";
 import EmergencyFloatingButton from "@/components/EmergencyFloatingButton";
 import BackgroundMusic from "@/components/BackgroundMusic";
-import FeedbackModal from "@/components/FeedbackModal";
+
 import DonationModal from "@/components/DonationModal";
 import NotificationBanner from "@/components/NotificationBanner";
 import ProximityAlertListener from "@/components/ProximityAlertListener";
@@ -92,7 +92,7 @@ const Index = () => {
       <ProximityAlertListener />
       <EmergencyFloatingButton />
       <BackgroundMusic />
-      <FeedbackModal />
+      
       <DonationModal externalOpen={donationOpen} onExternalClose={() => setDonationOpen(false)} />
 
       <main className="pt-[calc(4rem+2.5rem)]">

@@ -1,4 +1,4 @@
-import { Shield, Heart, HandHeart } from "lucide-react";
+import { Shield, Heart, HandHeart, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const Footer = ({ onDonateClick }: { onDonateClick?: () => void }) => {
@@ -21,8 +21,16 @@ const Footer = ({ onDonateClick }: { onDonateClick?: () => void }) => {
           <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
             <a href="#" className="hover:text-foreground transition-smooth">Termos de Uso</a>
             <a href="#" className="hover:text-foreground transition-smooth">Privacidade</a>
-            <a href="#" className="hover:text-foreground transition-smooth">Contato</a>
           </div>
+
+          {/* Contact */}
+          <a
+            href="mailto:urielfortunato123@gmail.com"
+            className="flex items-center gap-2 text-sm font-medium text-primary hover:underline transition-smooth"
+          >
+            <Mail className="w-4 h-4" />
+            Entre em contato com o desenvolvedor
+          </a>
 
           {/* Donate + Credits */}
           <div className="flex flex-col items-center gap-3">
