@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useNotifications } from "@/hooks/useNotifications";
 export interface WeatherData {
   temperature: number;
   apparentTemperature: number;
@@ -65,9 +65,12 @@ export function useWeather(lat?: number, lng?: number) {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { sendNotification, requestPermission } = useNotifications();
+  const lastAlertRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (lat === undefined || lng === undefined) return;
+    requestPermission();
 
     let cancelled = false;
     const fetchWeather = async () => {
@@ -86,7 +89,7 @@ export function useWeather(lat?: number, lng?: number) {
           const precip = c.precipitation;
           const severity = getSeverity(code, wind, precip);
 
-          setWeather({
+          const newWeather: WeatherData = {
             temperature: c.temperature_2m,
             apparentTemperature: c.apparent_temperature,
             humidity: c.relative_humidity_2m,
@@ -97,7 +100,25 @@ export function useWeather(lat?: number, lng?: number) {
             hasSevereWeather: severity !== "none",
             severityLevel: severity,
             alertMessage: getAlertMessage(code, wind, precip),
-          });
+          };
+
+          setWeather(newWeather);
+
+          // Send push notification for severe weather (only once per severity change)
+          if (newWeather.hasSevereWeather && lastAlertRef.current !== newWeather.severityLevel) {
+            lastAlertRef.current = newWeather.severityLevel;
+            const info = getWeatherInfo(code);
+            sendNotification(
+              `${info.emoji} Alerta Meteorológico`,
+              {
+                body: newWeather.alertMessage,
+                tag: "weather-alert",
+                requireInteraction: newWeather.severityLevel === "extreme",
+              }
+            );
+          } else if (!newWeather.hasSevereWeather) {
+            lastAlertRef.current = null;
+          }
         }
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : "Erro");
