@@ -111,8 +111,9 @@ const MapaSeguranca = () => {
   const [safePlaces, setSafePlaces] = useState<MapPlace[]>([]);
   const [safeFilter, setSafeFilter] = useState("all");
 
-  // Danger zones (from database)
+  // Danger zones (from database + automatic)
   const [dangerZones, setDangerZones] = useState<MapPlace[]>([]);
+  const [autoDangerZones, setAutoDangerZones] = useState<MapPlace[]>([]);
 
   // Realtime events (from database)
   const [realtimeEvents, setRealtimeEvents] = useState<MapPlace[]>([]);
@@ -198,12 +199,113 @@ const MapaSeguranca = () => {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
+  // Fetch automatic hazard zones from OpenStreetMap
+  const fetchAutoHazardZones = async (lat: number, lng: number) => {
+    try {
+      const radius = 15000;
+      // Query OSM for flood-prone areas, landslide zones, hazardous areas
+      const query = `[out:json][timeout:20];(
+        nwr["natural"="wetland"](around:${radius},${lat},${lng});
+        nwr["water"="river"](around:${radius},${lat},${lng});
+        nwr["waterway"="river"](around:${radius},${lat},${lng});
+        nwr["flood_prone"="yes"](around:${radius},${lat},${lng});
+        nwr["hazard"~"flood|landslide"](around:${radius},${lat},${lng});
+        nwr["geological_hazard"~"landslide|erosion"](around:${radius},${lat},${lng});
+        nwr["natural"="cliff"](around:${radius},${lat},${lng});
+        nwr["natural"="landslide"](around:${radius},${lat},${lng});
+        nwr["landuse"="landfill"](around:${radius},${lat},${lng});
+        nwr["hazard:flood"~"."](around:${radius},${lat},${lng});
+        nwr["man_made"="embankment"](around:${radius},${lat},${lng});
+      );out center 100;`;
+      
+      const res = await fetch("https://overpass-api.de/api/interpreter", {
+        method: "POST",
+        body: `data=${encodeURIComponent(query)}`,
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      });
+      const data = await res.json();
+      
+      const zones: MapPlace[] = (data.elements || []).map((el: any) => {
+        const elLat = el.lat || el.center?.lat;
+        const elLng = el.lon || el.center?.lon;
+        if (!elLat || !elLng) return null;
+        
+        const tags = el.tags || {};
+        let type = "alagavel", emoji = "🌊", name = "Zona de Risco";
+        
+        if (tags.natural === "cliff" || tags.natural === "landslide" || tags.geological_hazard) {
+          type = "encosta"; emoji = "⛰️"; name = tags.name || "Encosta / Deslizamento";
+        } else if (tags.natural === "wetland" || tags.flood_prone || tags["hazard:flood"]) {
+          type = "alagavel"; emoji = "🌊"; name = tags.name || "Área Alagável";
+        } else if (tags.waterway === "river" || tags.water === "river") {
+          type = "alagavel"; emoji = "🏞️"; name = tags.name || "Rio / Córrego";
+        } else if (tags.man_made === "embankment") {
+          type = "encosta"; emoji = "🧱"; name = tags.name || "Barragem / Aterro";
+        } else if (tags.landuse === "landfill") {
+          type = "encosta"; emoji = "⚠️"; name = tags.name || "Aterro Sanitário";
+        }
+        
+        return {
+          id: `auto-${el.id}`,
+          name, type, emoji,
+          layer: "danger" as const,
+          lat: elLat, lng: elLng,
+          distance: getDistance(lat, lng, elLat, elLng),
+          severity: 3,
+        };
+      }).filter(Boolean) as MapPlace[];
+      
+      zones.sort((a, b) => (a.distance || 0) - (b.distance || 0));
+      setAutoDangerZones(zones);
+    } catch (err) {
+      console.error("Auto hazard zones fetch error:", err);
+    }
+  };
+
+  // Also fetch from hazard_zones table
+  const fetchDbHazardZones = async (lat: number, lng: number) => {
+    try {
+      const { data } = await supabase
+        .from("hazard_zones")
+        .select("*")
+        .limit(100);
+      
+      if (data) {
+        const zones: MapPlace[] = data.map((hz: any) => {
+          const geom = hz.geom as any;
+          const hzLat = geom?.coordinates?.[1] || geom?.lat || lat;
+          const hzLng = geom?.coordinates?.[0] || geom?.lng || lng;
+          return {
+            id: `hz-${hz.id}`,
+            name: hz.name || hz.hazard_type,
+            type: hz.hazard_type,
+            emoji: hz.hazard_type === "alagamento" ? "🌊" : hz.hazard_type === "deslizamento" ? "⛰️" : "⚠️",
+            layer: "danger" as const,
+            lat: hzLat, lng: hzLng,
+            distance: getDistance(lat, lng, hzLat, hzLng),
+            severity: hz.risk_level || 3,
+          };
+        });
+        setDangerZones(prev => {
+          const communityOnly = prev.filter(p => !p.id.startsWith("hz-"));
+          return [...communityOnly, ...zones];
+        });
+      }
+    } catch (err) {
+      console.error("DB hazard zones error:", err);
+    }
+  };
+
   useEffect(() => {
     (async () => {
       try {
         const pos = await getCurrentPosition();
         setUserPos([pos.latitude, pos.longitude]);
-        await fetchSafePlaces(pos.latitude, pos.longitude);
+        await Promise.all([
+          fetchSafePlaces(pos.latitude, pos.longitude),
+          fetchAutoHazardZones(pos.latitude, pos.longitude),
+          fetchDbHazardZones(pos.latitude, pos.longitude),
+        ]);
       } catch {
         toast({ title: "Erro de GPS", description: "Ative a localização.", variant: "destructive" });
         setLoading(false);
@@ -329,7 +431,8 @@ const MapaSeguranca = () => {
 
   const filteredSafe = safeFilter === "all" ? safePlaces : safePlaces.filter(p => p.type === safeFilter);
 
-  const currentMarkers = activeTab === "safe" ? filteredSafe : activeTab === "danger" ? dangerZones : realtimeEvents;
+  const allDangerZones = [...dangerZones, ...autoDangerZones];
+  const currentMarkers = activeTab === "safe" ? filteredSafe : activeTab === "danger" ? allDangerZones : realtimeEvents;
 
   return (
     <div className="min-h-screen bg-background flex flex-col pb-16">
@@ -405,7 +508,7 @@ const MapaSeguranca = () => {
             {/* Danger header */}
             <TabsContent value="danger" className="mt-0">
               <div className="bg-card border-b border-border px-4 py-2 flex items-center justify-between">
-                <p className="text-sm font-bold text-foreground">🔴 {dangerZones.length} zona{dangerZones.length !== 1 ? "s" : ""} de perigo</p>
+                <p className="text-sm font-bold text-foreground">🔴 {allDangerZones.length} zona{allDangerZones.length !== 1 ? "s" : ""} de perigo</p>
                 <Button size="sm" variant="destructive" className="gap-1 rounded-full text-xs" onClick={() => { setReportLayer("danger"); setShowReportModal(true); }}>
                   <Plus className="w-3 h-3" /> Marcar
                 </Button>
@@ -430,7 +533,7 @@ const MapaSeguranca = () => {
                 <Marker position={userPos} icon={userIcon} />
 
                 {/* Danger zone circles */}
-                {activeTab === "danger" && dangerZones.map(dz => (
+                {activeTab === "danger" && allDangerZones.map(dz => (
                   <Circle key={`c-${dz.id}`} center={[dz.lat, dz.lng]} radius={200}
                     pathOptions={{ color: iconColors[dz.type] || "#dc2626", fillColor: iconColors[dz.type] || "#dc2626", fillOpacity: 0.15 }} />
                 ))}
@@ -469,22 +572,32 @@ const MapaSeguranca = () => {
 
               {activeTab === "danger" && (
                 <>
-                  {dangerZones.length === 0 ? (
+                  {allDangerZones.length === 0 ? (
                     <div className="text-center py-8">
                       <AlertTriangle className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                      <p className="text-muted-foreground text-sm">Nenhuma zona de perigo marcada.</p>
+                      <p className="text-muted-foreground text-sm">Nenhuma zona de perigo encontrada.</p>
                       <Button onClick={() => { setReportLayer("danger"); setShowReportModal(true); }} className="mt-3 gap-1" variant="destructive" size="sm">
                         <Plus className="w-4 h-4" /> Marcar zona de perigo
                       </Button>
                     </div>
-                  ) : dangerZones.map(dz => (
-                    <div key={dz.id} className="bg-card rounded-xl p-3 border border-destructive/30 shadow-soft flex items-center gap-3">
+                  ) : allDangerZones.map(dz => (
+                    <motion.button key={dz.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                      onClick={() => setSelectedPlace(dz)}
+                      className="w-full bg-card rounded-xl p-3 border border-destructive/30 shadow-soft flex items-center gap-3 text-left">
                       <span className="text-2xl">{dz.emoji}</span>
-                      <div className="flex-1">
-                        <p className="font-semibold text-foreground text-sm">{dz.name}</p>
-                        {dz.timestamp && <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" />{timeAgo(dz.timestamp)}</p>}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-foreground text-sm truncate">{dz.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {dz.distance != null ? `${dz.distance.toFixed(1)} km` : ""}
+                          {dz.id.startsWith("auto-") ? " • OpenStreetMap" : dz.timestamp ? ` • ${timeAgo(dz.timestamp)}` : ""}
+                        </p>
                       </div>
-                    </div>
+                      {dz.severity && (
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                          dz.severity >= 4 ? "bg-destructive/15 text-destructive" : dz.severity >= 3 ? "bg-warning/15 text-warning" : "bg-success/15 text-success"
+                        }`}>{dz.severity}/5</span>
+                      )}
+                    </motion.button>
                   ))}
                 </>
               )}
