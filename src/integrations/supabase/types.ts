@@ -143,6 +143,126 @@ export type Database = {
         }
         Relationships: []
       }
+      hazard_zones: {
+        Row: {
+          city: string | null
+          geom: Json
+          hazard_type: string
+          id: string
+          name: string | null
+          risk_level: number
+          source: string
+          state: string | null
+          updated_at: string
+        }
+        Insert: {
+          city?: string | null
+          geom: Json
+          hazard_type: string
+          id?: string
+          name?: string | null
+          risk_level?: number
+          source?: string
+          state?: string | null
+          updated_at?: string
+        }
+        Update: {
+          city?: string | null
+          geom?: Json
+          hazard_type?: string
+          id?: string
+          name?: string | null
+          risk_level?: number
+          source?: string
+          state?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      live_events: {
+        Row: {
+          created_at: string
+          description: string
+          event_type: string
+          expires_at: string
+          id: string
+          lat: number
+          lng: number
+          photo_url: string | null
+          severity: number
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          event_type: string
+          expires_at?: string
+          id?: string
+          lat: number
+          lng: number
+          photo_url?: string | null
+          severity?: number
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          event_type?: string
+          expires_at?: string
+          id?: string
+          lat?: number
+          lng?: number
+          photo_url?: string | null
+          severity?: number
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      pois: {
+        Row: {
+          address: string | null
+          category: string
+          city: string | null
+          id: string
+          lat: number
+          lng: number
+          name: string
+          phone: string | null
+          source: string
+          state: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          category: string
+          city?: string | null
+          id?: string
+          lat: number
+          lng: number
+          name: string
+          phone?: string | null
+          source?: string
+          state?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          category?: string
+          city?: string | null
+          id?: string
+          lat?: number
+          lng?: number
+          name?: string
+          phone?: string | null
+          source?: string
+          state?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       push_subscriptions: {
         Row: {
           auth: string
@@ -176,6 +296,42 @@ export type Database = {
           lng?: number | null
           p256dh?: string
           state?: string | null
+        }
+        Relationships: []
+      }
+      user_profiles: {
+        Row: {
+          allergies: string | null
+          blood_type: string | null
+          display_name: string
+          emergency_contacts: Json
+          id: string
+          medical_notes: string | null
+          qr_token: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          allergies?: string | null
+          blood_type?: string | null
+          display_name?: string
+          emergency_contacts?: Json
+          id?: string
+          medical_notes?: string | null
+          qr_token?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          allergies?: string | null
+          blood_type?: string | null
+          display_name?: string
+          emergency_contacts?: Json
+          id?: string
+          medical_notes?: string | null
+          qr_token?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
