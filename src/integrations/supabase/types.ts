@@ -81,31 +81,37 @@ export type Database = {
         Row: {
           created_at: string
           emoji: string
+          expires_at: string | null
           id: string
           lat: number
           layer: string
           lng: number
           name: string
+          severity: number
           type: string
         }
         Insert: {
           created_at?: string
           emoji: string
+          expires_at?: string | null
           id?: string
           lat: number
           layer: string
           lng: number
           name: string
+          severity?: number
           type: string
         }
         Update: {
           created_at?: string
           emoji?: string
+          expires_at?: string | null
           id?: string
           lat?: number
           layer?: string
           lng?: number
           name?: string
+          severity?: number
           type?: string
         }
         Relationships: []

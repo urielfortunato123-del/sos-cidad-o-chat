@@ -24,6 +24,10 @@ interface MapPlace {
   distance?: number;
   emoji: string;
   timestamp?: number;
+  severity?: number;
+  expires_at?: string;
+  phone?: string | null;
+  address?: string | null;
 }
 
 // ─── Layer definitions ──────────────────────────────────
@@ -113,8 +117,10 @@ const MapaSeguranca = () => {
   // Modals
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportLayer, setReportLayer] = useState<"danger" | "realtime">("realtime");
+  const [reportSeverity, setReportSeverity] = useState(3);
+  const [reportTtl, setReportTtl] = useState(180); // minutes
 
-  // Load reports from database
+  // Load reports from database (filter expired)
   useEffect(() => {
     const fetchReports = async () => {
       const { data, error } = await supabase
@@ -124,20 +130,23 @@ const MapaSeguranca = () => {
         .limit(200);
 
       if (data && !error) {
-        const mapped: MapPlace[] = data.map((r: any) => ({
-          id: r.id,
-          type: r.type,
-          layer: r.layer as "danger" | "realtime",
-          emoji: r.emoji,
-          name: r.name,
-          lat: r.lat,
-          lng: r.lng,
-          timestamp: new Date(r.created_at).getTime(),
-        }));
+        const now = new Date().toISOString();
+        const mapped: MapPlace[] = data
+          .filter((r: any) => !r.expires_at || r.expires_at > now)
+          .map((r: any) => ({
+            id: r.id,
+            type: r.type,
+            layer: r.layer as "danger" | "realtime",
+            emoji: r.emoji,
+            name: r.name,
+            lat: r.lat,
+            lng: r.lng,
+            timestamp: new Date(r.created_at).getTime(),
+            severity: r.severity || 3,
+            expires_at: r.expires_at,
+          }));
         setDangerZones(mapped.filter(m => m.layer === "danger"));
-        // Only show realtime events from last 24h
-        const now = Date.now();
-        setRealtimeEvents(mapped.filter(m => m.layer === "realtime" && now - (m.timestamp || 0) < 24 * 60 * 60 * 1000));
+        setRealtimeEvents(mapped.filter(m => m.layer === "realtime"));
       }
     };
     fetchReports();
@@ -198,45 +207,59 @@ const MapaSeguranca = () => {
 
   const fetchSafePlaces = async (lat: number, lng: number) => {
     try {
-      const radius = 5000;
-      const query = `
-        [out:json][timeout:15];
-        (
-          node["amenity"="school"](around:${radius},${lat},${lng});
-          node["amenity"="hospital"](around:${radius},${lat},${lng});
-          node["amenity"="clinic"](around:${radius},${lat},${lng});
-          node["amenity"="place_of_worship"](around:${radius},${lat},${lng});
-          node["amenity"="community_centre"](around:${radius},${lat},${lng});
-          node["amenity"="social_facility"](around:${radius},${lat},${lng});
-          node["amenity"="fire_station"](around:${radius},${lat},${lng});
-          node["emergency"="assembly_point"](around:${radius},${lat},${lng});
-        );
-        out body 80;
-      `;
-      const res = await fetch("https://overpass-api.de/api/interpreter", {
-        method: "POST",
-        body: `data=${encodeURIComponent(query)}`,
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      // Use edge function via URL with query params
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const url = `https://${projectId}.supabase.co/functions/v1/fetch-pois?lat=${lat}&lng=${lng}&radius=5000`;
+      const response = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
       });
-      const data = await res.json();
-      const results: MapPlace[] = (data.elements || []).map((el: any) => {
-        const amenity = el.tags?.amenity || el.tags?.emergency || "";
-        let type = "shelter", emoji = "🏛️";
-        if (amenity === "school") { type = "school"; emoji = "🏫"; }
-        else if (["hospital", "clinic"].includes(amenity)) { type = "hospital"; emoji = "🏥"; }
-        else if (amenity === "place_of_worship") { type = "church"; emoji = "⛪"; }
-        else if (amenity === "fire_station") { type = "fire_station"; emoji = "🚒"; }
-        return {
-          id: el.id.toString(),
-          name: el.tags?.name || `${emoji} ${type === "school" ? "Escola" : type === "hospital" ? "Unidade de Saúde" : type === "church" ? "Igreja" : type === "fire_station" ? "Quartel Bombeiros" : "Abrigo"}`,
-          type, layer: "safe" as const, lat: el.lat, lng: el.lon,
-          distance: getDistance(lat, lng, el.lat, el.lon), emoji,
-        };
-      });
-      results.sort((a, b) => (a.distance || 0) - (b.distance || 0));
+      
+      if (!response.ok) throw new Error('Failed to fetch POIs');
+      
+      const data = await response.json();
+      const results: MapPlace[] = (data.items || []).map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        type: item.type,
+        layer: "safe" as const,
+        lat: item.lat,
+        lng: item.lng,
+        distance: item.distance_km,
+        emoji: item.emoji,
+        phone: item.phone,
+        address: item.address,
+      }));
       setSafePlaces(results);
     } catch {
-      toast({ title: "Erro ao buscar locais", description: "Tente novamente.", variant: "destructive" });
+      // Fallback to direct Overpass if edge function fails
+      try {
+        const radius = 5000;
+        const query = `[out:json][timeout:15];(node["amenity"="school"](around:${radius},${lat},${lng});node["amenity"~"hospital|clinic"](around:${radius},${lat},${lng});node["amenity"="place_of_worship"](around:${radius},${lat},${lng});node["amenity"="fire_station"](around:${radius},${lat},${lng});node["amenity"="police"](around:${radius},${lat},${lng});node["amenity"~"community_centre|social_facility"](around:${radius},${lat},${lng});node["emergency"="assembly_point"](around:${radius},${lat},${lng}););out body 80;`;
+        const res = await fetch("https://overpass-api.de/api/interpreter", {
+          method: "POST", body: `data=${encodeURIComponent(query)}`,
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        });
+        const data = await res.json();
+        const results: MapPlace[] = (data.elements || []).map((el: any) => {
+          const amenity = el.tags?.amenity || el.tags?.emergency || "";
+          let type = "shelter", emoji = "🏛️";
+          if (amenity === "school") { type = "school"; emoji = "🏫"; }
+          else if (["hospital", "clinic"].includes(amenity)) { type = "hospital"; emoji = "🏥"; }
+          else if (amenity === "place_of_worship") { type = "church"; emoji = "⛪"; }
+          else if (amenity === "fire_station") { type = "fire_station"; emoji = "🚒"; }
+          else if (amenity === "police") { type = "police"; emoji = "🚔"; }
+          return {
+            id: el.id.toString(),
+            name: el.tags?.name || `${emoji} ${type}`,
+            type, layer: "safe" as const, lat: el.lat, lng: el.lon,
+            distance: getDistance(lat, lng, el.lat, el.lon), emoji,
+          };
+        });
+        results.sort((a, b) => (a.distance || 0) - (b.distance || 0));
+        setSafePlaces(results);
+      } catch {
+        toast({ title: "Erro ao buscar locais", description: "Tente novamente.", variant: "destructive" });
+      }
     } finally {
       setLoading(false);
     }
@@ -250,7 +273,8 @@ const MapaSeguranca = () => {
     const types = layer === "danger" ? dangerZoneTypes : realtimeEventTypes;
     const t = types.find(x => x.id === typeId)!;
 
-    // Save to database
+    // Save to database with severity and TTL
+    const expiresAt = new Date(Date.now() + reportTtl * 60 * 1000).toISOString();
     const { error } = await supabase.from("community_reports").insert({
       type: typeId,
       layer,
@@ -258,7 +282,9 @@ const MapaSeguranca = () => {
       name: t.label,
       lat: userPos[0],
       lng: userPos[1],
-    });
+      severity: reportSeverity,
+      expires_at: expiresAt,
+    } as any);
 
     if (error) {
       toast({ title: "Erro ao salvar", description: "Tente novamente.", variant: "destructive" });
@@ -378,7 +404,7 @@ const MapaSeguranca = () => {
 
                 {currentMarkers.map(place => (
                   <Marker key={place.id} position={[place.lat, place.lng]}
-                    icon={createIcon(place.emoji, iconColors[place.type] || "#6b7280", activeTab === "realtime" ? 40 : 36)}>
+                    icon={createIcon(place.emoji, iconColors[place.type] || "#6b7280", activeTab === "realtime" ? 30 + (place.severity || 3) * 4 : 36)}>
                     <Popup>
                       <div className="text-center">
                         <strong>{place.emoji} {place.name}</strong>
@@ -451,7 +477,16 @@ const MapaSeguranca = () => {
                       <span className="text-2xl">{ev.emoji}</span>
                       <div className="flex-1">
                         <p className="font-semibold text-foreground text-sm">{ev.name}</p>
-                        {ev.timestamp && <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" />{timeAgo(ev.timestamp)}</p>}
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {ev.timestamp && <span className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" />{timeAgo(ev.timestamp)}</span>}
+                          {ev.severity && (
+                            <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${
+                              ev.severity <= 2 ? "bg-success/20 text-success" : ev.severity === 3 ? "bg-warning/20 text-warning" : "bg-destructive/20 text-destructive"
+                            }`}>
+                              Nível {ev.severity}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -484,6 +519,48 @@ const MapaSeguranca = () => {
                 {reportLayer === "danger" ? "🔴 Marcar Zona de Perigo" : "🟡 Reportar Evento"}
               </h2>
               <p className="text-sm text-muted-foreground text-center mb-4">Sua localização será usada para marcar no mapa</p>
+              
+              {/* Severity selector */}
+              <div className="mb-4">
+                <p className="text-sm font-bold text-foreground mb-2">Gravidade</p>
+                <div className="flex gap-2 justify-center">
+                  {[1, 2, 3, 4, 5].map(s => (
+                    <button key={s} onClick={() => setReportSeverity(s)}
+                      className={`w-10 h-10 rounded-full font-bold text-sm transition-all ${
+                        reportSeverity === s
+                          ? s <= 2 ? "bg-success text-success-foreground" : s <= 3 ? "bg-warning text-warning-foreground" : "bg-destructive text-destructive-foreground"
+                          : "bg-secondary text-secondary-foreground"
+                      }`}>
+                      {s}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground text-center mt-1">
+                  {reportSeverity <= 2 ? "Baixa" : reportSeverity === 3 ? "Moderada" : reportSeverity === 4 ? "Alta" : "Crítica"}
+                </p>
+              </div>
+
+              {/* TTL selector */}
+              <div className="mb-4">
+                <p className="text-sm font-bold text-foreground mb-2">Validade</p>
+                <div className="flex gap-2 justify-center flex-wrap">
+                  {[
+                    { value: 60, label: "1h" },
+                    { value: 180, label: "3h" },
+                    { value: 360, label: "6h" },
+                    { value: 720, label: "12h" },
+                    { value: 1440, label: "24h" },
+                  ].map(opt => (
+                    <button key={opt.value} onClick={() => setReportTtl(opt.value)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                        reportTtl === opt.value ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"
+                      }`}>
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 {(reportLayer === "danger" ? dangerZoneTypes : realtimeEventTypes).map(type => (
                   <button key={type.id} onClick={() => handleReport(type.id, reportLayer)}
