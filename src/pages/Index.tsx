@@ -10,6 +10,7 @@ import BackgroundMusic from "@/components/BackgroundMusic";
 import FeedbackModal from "@/components/FeedbackModal";
 import DonationModal from "@/components/DonationModal";
 import NotificationBanner from "@/components/NotificationBanner";
+import ProximityAlertListener from "@/components/ProximityAlertListener";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { getContactsByCep, CityContacts, emergencyNumbers } from "@/utils/cityContacts";
 import { useToast } from "@/hooks/use-toast";
@@ -86,6 +87,7 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Header onDonateClick={() => setDonationOpen(true)} />
       <NotificationBanner />
+      <ProximityAlertListener />
       <EmergencyFloatingButton />
       <BackgroundMusic />
       <FeedbackModal />

@@ -95,7 +95,7 @@ const MapaSeguranca = () => {
   useAccessLog("/mapa-seguranca");
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { sendDisasterAlert, requestPermission, permission } = useNotifications();
+  const { sendDisasterAlert, sendProximityAlert, requestPermission, permission } = useNotifications();
   const [userPos, setUserPos] = useState<[number, number] | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("safe");
@@ -142,7 +142,7 @@ const MapaSeguranca = () => {
     };
     fetchReports();
 
-    // Realtime subscription
+    // Realtime subscription with proximity alerts
     const channel = supabase
       .channel("community-reports-realtime")
       .on(
@@ -165,6 +165,17 @@ const MapaSeguranca = () => {
           } else {
             setRealtimeEvents(prev => [newPlace, ...prev]);
           }
+
+          // Proximity notification: alert if event is within 5km of user
+          setUserPos(currentPos => {
+            if (currentPos) {
+              const dist = getDistance(currentPos[0], currentPos[1], newPlace.lat, newPlace.lng);
+              if (dist <= 5) {
+                sendProximityAlert(newPlace.name, newPlace.emoji, dist);
+              }
+            }
+            return currentPos;
+          });
         }
       )
       .subscribe();
