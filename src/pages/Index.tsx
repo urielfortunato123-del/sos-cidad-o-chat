@@ -11,6 +11,7 @@ import FeedbackModal from "@/components/FeedbackModal";
 import DonationModal from "@/components/DonationModal";
 import NotificationBanner from "@/components/NotificationBanner";
 import ProximityAlertListener from "@/components/ProximityAlertListener";
+import BroadcastAlertBanner from "@/components/BroadcastAlertBanner";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { getContactsByCep, CityContacts, emergencyNumbers } from "@/utils/cityContacts";
 import { useToast } from "@/hooks/use-toast";
@@ -86,6 +87,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header onDonateClick={() => setDonationOpen(true)} />
+      <BroadcastAlertBanner />
       <NotificationBanner />
       <ProximityAlertListener />
       <EmergencyFloatingButton />

@@ -47,6 +47,36 @@ export type Database = {
         }
         Relationships: []
       }
+      broadcast_alerts: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          message: string
+          severity: string
+          title: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          message: string
+          severity?: string
+          title: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          message?: string
+          severity?: string
+          title?: string
+        }
+        Relationships: []
+      }
       community_reports: {
         Row: {
           created_at: string
