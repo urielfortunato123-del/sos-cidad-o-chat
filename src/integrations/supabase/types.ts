@@ -47,6 +47,39 @@ export type Database = {
         }
         Relationships: []
       }
+      community_reports: {
+        Row: {
+          created_at: string
+          emoji: string
+          id: string
+          lat: number
+          layer: string
+          lng: number
+          name: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          emoji: string
+          id?: string
+          lat: number
+          layer: string
+          lng: number
+          name: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          id?: string
+          lat?: number
+          layer?: string
+          lng?: number
+          name?: string
+          type?: string
+        }
+        Relationships: []
+      }
       feedback: {
         Row: {
           created_at: string

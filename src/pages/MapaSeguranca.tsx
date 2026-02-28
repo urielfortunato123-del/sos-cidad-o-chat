@@ -10,6 +10,7 @@ import L from "leaflet";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useAccessLog } from "@/hooks/useAccessLog";
+import { supabase } from "@/integrations/supabase/client";
 import "leaflet/dist/leaflet.css";
 
 // ─── Types ──────────────────────────────────────────────
@@ -51,8 +52,6 @@ const realtimeEventTypes = [
   { id: "queda_arvore", emoji: "🌳", label: "Queda de Árvore", color: "bg-success" },
 ];
 
-const STORAGE_KEY_DANGER = "sos-cidadao-danger-zones";
-const STORAGE_KEY_REALTIME = "sos-cidadao-realtime-events";
 
 // ─── Map helpers ────────────────────────────────────────
 function RecenterMap({ position }: { position: [number, number] }) {
@@ -105,27 +104,72 @@ const MapaSeguranca = () => {
   const [safePlaces, setSafePlaces] = useState<MapPlace[]>([]);
   const [safeFilter, setSafeFilter] = useState("all");
 
-  // Danger zones (local storage)
+  // Danger zones (from database)
   const [dangerZones, setDangerZones] = useState<MapPlace[]>([]);
 
-  // Realtime events (local storage)
+  // Realtime events (from database)
   const [realtimeEvents, setRealtimeEvents] = useState<MapPlace[]>([]);
 
   // Modals
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportLayer, setReportLayer] = useState<"danger" | "realtime">("realtime");
 
-  // Load saved data
+  // Load reports from database
   useEffect(() => {
-    try {
-      const dz = localStorage.getItem(STORAGE_KEY_DANGER);
-      if (dz) setDangerZones(JSON.parse(dz));
-      const rt = localStorage.getItem(STORAGE_KEY_REALTIME);
-      if (rt) {
-        const parsed = JSON.parse(rt) as MapPlace[];
-        setRealtimeEvents(parsed.filter(r => Date.now() - (r.timestamp || 0) < 24 * 60 * 60 * 1000));
+    const fetchReports = async () => {
+      const { data, error } = await supabase
+        .from("community_reports")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(200);
+
+      if (data && !error) {
+        const mapped: MapPlace[] = data.map((r: any) => ({
+          id: r.id,
+          type: r.type,
+          layer: r.layer as "danger" | "realtime",
+          emoji: r.emoji,
+          name: r.name,
+          lat: r.lat,
+          lng: r.lng,
+          timestamp: new Date(r.created_at).getTime(),
+        }));
+        setDangerZones(mapped.filter(m => m.layer === "danger"));
+        // Only show realtime events from last 24h
+        const now = Date.now();
+        setRealtimeEvents(mapped.filter(m => m.layer === "realtime" && now - (m.timestamp || 0) < 24 * 60 * 60 * 1000));
       }
-    } catch {}
+    };
+    fetchReports();
+
+    // Realtime subscription
+    const channel = supabase
+      .channel("community-reports-realtime")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "community_reports" },
+        (payload) => {
+          const r = payload.new as any;
+          const newPlace: MapPlace = {
+            id: r.id,
+            type: r.type,
+            layer: r.layer as "danger" | "realtime",
+            emoji: r.emoji,
+            name: r.name,
+            lat: r.lat,
+            lng: r.lng,
+            timestamp: new Date(r.created_at).getTime(),
+          };
+          if (newPlace.layer === "danger") {
+            setDangerZones(prev => [newPlace, ...prev]);
+          } else {
+            setRealtimeEvents(prev => [newPlace, ...prev]);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   useEffect(() => {
@@ -187,31 +231,33 @@ const MapaSeguranca = () => {
     }
   };
 
-  const handleReport = (typeId: string, layer: "danger" | "realtime") => {
+  const handleReport = async (typeId: string, layer: "danger" | "realtime") => {
     if (!userPos) {
       toast({ title: "GPS necessário", description: "Ative a localização.", variant: "destructive" });
       return;
     }
     const types = layer === "danger" ? dangerZoneTypes : realtimeEventTypes;
     const t = types.find(x => x.id === typeId)!;
-    const newItem: MapPlace = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      type: typeId, layer, emoji: t.emoji, name: t.label,
-      lat: userPos[0], lng: userPos[1], timestamp: Date.now(),
-    };
-    if (layer === "danger") {
-      const updated = [...dangerZones, newItem];
-      setDangerZones(updated);
-      localStorage.setItem(STORAGE_KEY_DANGER, JSON.stringify(updated));
-    } else {
-      const updated = [...realtimeEvents, newItem];
-      setRealtimeEvents(updated);
-      localStorage.setItem(STORAGE_KEY_REALTIME, JSON.stringify(updated));
+
+    // Save to database
+    const { error } = await supabase.from("community_reports").insert({
+      type: typeId,
+      layer,
+      emoji: t.emoji,
+      name: t.label,
+      lat: userPos[0],
+      lng: userPos[1],
+    });
+
+    if (error) {
+      toast({ title: "Erro ao salvar", description: "Tente novamente.", variant: "destructive" });
+      return;
     }
+
     setShowReportModal(false);
     // Send push notification for the report
     sendDisasterAlert(t.label, t.emoji, { lat: userPos[0], lng: userPos[1] });
-    toast({ title: `${t.emoji} Marcação registrada!`, description: `${t.label} adicionado ao mapa.` });
+    toast({ title: `${t.emoji} Marcação registrada!`, description: `${t.label} adicionado ao mapa. Visível para todos!` });
   };
 
   const openNavigation = (lat: number, lng: number) => {
